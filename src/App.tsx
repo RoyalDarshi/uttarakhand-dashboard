@@ -13,11 +13,16 @@ import {
   Legend,
 } from "recharts";
 
-interface MetricData {
+interface MetricValues {
   literacy: number;
   income: number;
   population: number;
 }
+
+type GenderKey = "all" | "male" | "female" | "other";
+type AgeKey = "all" | "age0_18" | "age19_35" | "age36_50" | "age51_plus";
+
+type AreaMetricData = Record<string, MetricValues>;
 
 interface GeoJSONFeature {
   properties: { "@id": string; name: string };
@@ -29,18 +34,34 @@ interface GeoJSONData {
   features: GeoJSONFeature[];
 }
 
+const genderDisplayNames: Record<GenderKey, string> = {
+  all: "All Genders",
+  male: "Male",
+  female: "Female",
+  other: "Other",
+};
+
+const ageDisplayNames: Record<AgeKey, string> = {
+  all: "All Ages",
+  age0_18: "Age 0-18",
+  age19_35: "Age 19-35",
+  age36_50: "Age 36-50",
+  age51_plus: "Age 51+",
+};
+
 const App: React.FC = () => {
   const [polygonData, setPolygonData] = useState<GeoJSONData | null>(null);
   const [metricData, setMetricData] = useState<Record<
     string,
-    MetricData
+    AreaMetricData
   > | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<
     "literacy" | "income" | "population"
   >("literacy");
+  const [selectedGender, setSelectedGender] = useState<GenderKey>("all");
+  const [selectedAge, setSelectedAge] = useState<AgeKey>("all");
   const [error, setError] = useState<string | null>(null);
 
-  // Dummy Indian officer names for tooltips
   const officerNames = useMemo(() => {
     const names = [
       "Amit Kumar",
@@ -98,15 +119,41 @@ const App: React.FC = () => {
         setPolygonData(filtered);
 
         const areas = filtered.features.map((f) => f.properties["@id"]);
-        const dataMap: Record<string, MetricData> = {};
+        const dataMap: Record<string, AreaMetricData> = {};
+        const demographicKeys = [
+          "all_all",
+          "male_all",
+          "female_all",
+          "other_all",
+          "all_age0_18",
+          "all_age19_35",
+          "all_age36_50",
+          "all_age51_plus",
+          "male_age0_18",
+          "male_age19_35",
+          "male_age36_50",
+          "male_age51_plus",
+          "female_age0_18",
+          "female_age19_35",
+          "female_age36_50",
+          "female_age51_plus",
+          "other_age0_18",
+          "other_age19_35",
+          "other_age36_50",
+          "other_age51_plus",
+        ];
         areas.forEach((areaId) => {
+          const areaData: AreaMetricData = {};
           const getRandom = (min: number, max: number) =>
             Math.random() * (max - min) + min;
-          dataMap[areaId] = {
-            literacy: Number(getRandom(60, 95).toFixed(1)),
-            income: Math.floor(getRandom(20000, 100000)),
-            population: Math.floor(getRandom(5000, 1000000)),
-          };
+          demographicKeys.forEach((key) => {
+            areaData[key] = {
+              literacy: Number(getRandom(60, 95).toFixed(1)),
+              income: Math.floor(getRandom(20000, 100000)),
+              population: Math.floor(getRandom(5000, 1000000)),
+            };
+          });
+          dataMap[areaId] = areaData;
         });
         setMetricData(dataMap);
       })
@@ -116,17 +163,22 @@ const App: React.FC = () => {
       });
   }, []);
 
+  const demographicKey = useMemo(() => {
+    return `${selectedGender}_${selectedAge}` as string;
+  }, [selectedGender, selectedAge]);
+
   const kpis = useMemo(() => {
     if (!metricData) return null;
-    const areas = Object.values(metricData);
-    const values = areas.map((area) => area[selectedMetric]);
+    const values = Object.values(metricData).map(
+      (area) => area[demographicKey][selectedMetric]
+    );
     let average = values.reduce((sum, val) => sum + val, 0) / values.length;
     average = Number(average.toFixed(2));
     if (selectedMetric === "population") average = Math.floor(average);
     const min = Math.min(...values);
     const max = Math.max(...values);
     return { average, min, max };
-  }, [metricData, selectedMetric]);
+  }, [metricData, selectedMetric, demographicKey]);
 
   const getColor = (metric: string, value: number): string => {
     if (metric === "literacy") {
@@ -163,7 +215,21 @@ const App: React.FC = () => {
       : "Population";
   };
 
-  // Define brackets for pie chart
+  const getFullMetricName = () => {
+    const metricName = getMetricDisplayName(selectedMetric);
+    const genderName = genderDisplayNames[selectedGender];
+    const ageName = ageDisplayNames[selectedAge];
+    let demographicName = "Overall";
+    if (selectedGender !== "all" && selectedAge !== "all") {
+      demographicName = `${genderName}, ${ageName}`;
+    } else if (selectedGender !== "all") {
+      demographicName = genderName;
+    } else if (selectedAge !== "all") {
+      demographicName = ageName;
+    }
+    return `${metricName} (${demographicName})`;
+  };
+
   const brackets = {
     literacy: [
       { label: "<70%", min: 0, max: 70, color: "#DBEAFE" },
@@ -185,14 +251,13 @@ const App: React.FC = () => {
     ],
   };
 
-  // Compute pie chart data
   const pieData = useMemo(() => {
     if (!metricData || !polygonData) return [];
     const currentBrackets = brackets[selectedMetric];
     const counts = currentBrackets.map((bracket) => ({ ...bracket, count: 0 }));
     polygonData.features.forEach((feature) => {
       const id = feature.properties["@id"];
-      const value = metricData[id]?.[selectedMetric];
+      const value = metricData[id]?.[demographicKey]?.[selectedMetric];
       if (value !== undefined) {
         const bracket = currentBrackets.find(
           (b) => value >= b.min && (b.max === Infinity ? true : value < b.max)
@@ -205,21 +270,20 @@ const App: React.FC = () => {
       value: c.count,
       color: c.color,
     }));
-  }, [metricData, polygonData, selectedMetric]);
+  }, [metricData, polygonData, selectedMetric, demographicKey]);
 
-  // Compute bar chart data
   const barData = useMemo(() => {
     if (!metricData || !polygonData) return [];
     const data = polygonData.features
       .map((feature) => {
         const id = feature.properties["@id"];
         const name = feature.properties.name || "Unknown Area";
-        const value = metricData[id]?.[selectedMetric];
+        const value = metricData[id]?.[demographicKey]?.[selectedMetric];
         return value !== undefined ? { name, value } : null;
       })
       .filter((item) => item !== null);
     return data.sort((a, b) => b.value - a.value);
-  }, [metricData, polygonData, selectedMetric]);
+  }, [metricData, polygonData, selectedMetric, demographicKey]);
 
   if (error) return <div className="text-red-500 p-4">Error: {error}</div>;
   if (!polygonData || !metricData)
@@ -243,8 +307,8 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 p-6 flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="bg-gray-800 p-4 rounded-lg shadow w-full md:w-1/3">
+        <div className="flex flex-col md:flex-row md:items-start gap-6">
+          <div className="bg-gray-800 p-4 rounded-lg shadow w-full md:w-1/4">
             <label htmlFor="metric-select" className="block mb-2 font-semibold">
               Select Metric
             </label>
@@ -256,7 +320,7 @@ const App: React.FC = () => {
                   e.target.value as "literacy" | "income" | "population"
                 )
               }
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="literacy">Literacy Rate</option>
               <option value="income">Average Income</option>
@@ -264,33 +328,70 @@ const App: React.FC = () => {
             </select>
           </div>
           {kpis && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-              <div className="bg-gray-800 p-4 rounded-lg shadow text-center">
+            <div className="flex flex-col md:flex-row gap-4 w-full md:w-3/4">
+              <div className="bg-gray-800 p-4 rounded-lg shadow-md text-center w-full">
                 <h2 className="text-sm font-semibold">
-                  Average {getMetricDisplayName(selectedMetric)}
+                  Average {getFullMetricName()}
                 </h2>
-                <p className="text-xl font-bold text-blue-400">
+                <p className="text-xl font-bold text-blue-600">
                   {formatMetricValue(selectedMetric, kpis.average)}
                 </p>
               </div>
-              <div className="bg-gray-800 p-4 rounded-lg shadow text-center">
+              <div className="bg-gray-800 p-4 rounded-lg shadow-md text-center w-full">
                 <h2 className="text-sm font-semibold">
-                  Minimum {getMetricDisplayName(selectedMetric)}
+                  Minimum $ {getFullMetricName()}
                 </h2>
-                <p className="text-xl font-bold text-blue-400">
-                  {formatMetricValue(selectedMetric, kpis.min)}
+                <p className="text-xl font-bold text-blue-600">
+                  ${formatMetricValue(selectedMetric, kpis.min)}
                 </p>
               </div>
-              <div className="bg-gray-800 p-4 rounded-lg shadow text-center">
+              <div className="bg-gray-800 p-4 rounded-lg shadow-md text-center w-full">
                 <h2 className="text-sm font-semibold">
-                  Maximum {getMetricDisplayName(selectedMetric)}
+                  Maximum $ {getFullMetricName()}
                 </h2>
-                <p className="text-xl font-bold text-blue-400">
-                  {formatMetricValue(selectedMetric, kpis.max)}
+                <p className="text-xl font-bold text-blue-600">
+                  ${formatMetricValue(selectedMetric, kpis.max)}
                 </p>
               </div>
             </div>
           )}
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="bg-gray-800 p-4 rounded-lg shadow w-full md:w-1/2">
+            <label htmlFor="gender-select" className="block mb-2 font-semibold">
+              Select Gender
+            </label>
+            <select
+              id="gender-select"
+              value={selectedGender}
+              onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {Object.entries(genderDisplayNames).map(([key, display]) => (
+                <option key={key} value={key}>
+                  {display}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="bg-gray-800 p-4 rounded-lg shadow w-full md:w-1/2">
+            <label htmlFor="age-select" className="block mb-2 font-semibold">
+              Select Age Group
+            </label>
+            <select
+              id="age-select"
+              value={selectedAge}
+              onChange={(e) => setSelectedAge(e.target.value as AgeKey)}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {Object.entries(ageDisplayNames).map(([key, display]) => (
+                <option key={key} value={key}>
+                  {display}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-row gap-6">
@@ -303,11 +404,12 @@ const App: React.FC = () => {
               style={{ width: "100%", height: "100%" }}
             >
               <GeoJSON
-                key={selectedMetric}
+                key={`${selectedMetric}-${demographicKey}`}
                 data={polygonData}
                 style={(feature) => {
                   const id = feature?.properties["@id"];
-                  const value = metricData[id]?.[selectedMetric] || 0;
+                  const value =
+                    metricData[id]?.[demographicKey]?.[selectedMetric] || 0;
                   return {
                     fillColor: getColor(selectedMetric, value),
                     weight: 1,
@@ -319,17 +421,18 @@ const App: React.FC = () => {
                 onEachFeature={(feature, layer) => {
                   const id = feature.properties["@id"];
                   const name = feature.properties.name || "Unknown Area";
-                  const value = metricData[id]?.[selectedMetric] || 0;
+                  const value =
+                    metricData[id]?.[demographicKey]?.[selectedMetric] || 0;
                   const formattedValue = formatMetricValue(
                     selectedMetric,
                     value
                   );
-                  const metricName = getMetricDisplayName(selectedMetric);
+                  const fullMetricName = getFullMetricName();
                   const officer = officerNames[id] || "N/A";
                   layer.bindTooltip(
                     `<div style="background-color: #1F2937; color: #FFFFFF; padding: 8px; border-radius: 4px; font-size: 14px;">
                       <strong>Area:</strong> ${name}<br/>
-                      <strong>${metricName}:</strong> ${formattedValue}<br/>
+                      <strong>${fullMetricName}:</strong> ${formattedValue}<br/>
                       <strong>Officer In-Charge:</strong> ${officer}
                     </div>`,
                     { sticky: true, offset: [10, 10], direction: "auto" }
@@ -342,7 +445,7 @@ const App: React.FC = () => {
           <div className="w-2/5 flex flex-col items-center gap-6">
             <div className="bg-gray-800 p-4 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-2">
-                Distribution of {getMetricDisplayName(selectedMetric)}
+                Distribution of {getFullMetricName()}
               </h2>
               <PieChart width={300} height={300}>
                 <Pie
@@ -367,7 +470,7 @@ const App: React.FC = () => {
               style={{ maxHeight: "600px" }}
             >
               <h2 className="text-lg font-semibold mb-2">
-                {getMetricDisplayName(selectedMetric)} by Area
+                {getFullMetricName()} by Area
               </h2>
               <BarChart
                 layout="vertical"
