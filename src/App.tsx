@@ -41,6 +41,23 @@ const genderDisplayNames: Record<GenderKey, string> = {
   other: "Other",
 };
 
+const secDisplayNames: Record<GenderKey, string> = {
+  all: "All Castes",
+  obc: "Other Backward Classes",
+  sc: "Scheduled Castes",
+  st: "Scheduled Tribes",
+  oc: "Open Category",
+};
+
+const incomeGroupDisplayNAmes: Record<GenderKey, string> = {
+  all: "All SECs",
+  bpl: "Below Poverty Line",
+  low: "Low Income",
+  middle: "Middle Income",
+  high: "High Income",
+  affluent: "Affluent",
+};
+
 const ageDisplayNames: Record<AgeKey, string> = {
   all: "All Ages",
   age0_18: "Age 0-18",
@@ -287,13 +304,13 @@ const App: React.FC = () => {
 
   if (error) return <div className="text-red-500 p-4">Error: {error}</div>;
   if (!polygonData || !metricData)
-    return <div className="p-4">Loading map...</div>;
+    return <div className="p-4 text-gray-900">Loading map...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-      <header className="w-full flex justify-between items-center px-6 py-2 bg-gray-800 shadow-md">
+    <div className="min-h-screen bg-gray-100 text-gray-900 flex flex-col">
+      <header className="w-full flex justify-between items-center px-6 py-2 bg-white shadow-md">
         <h1 className="text-2xl font-bold">Uttarakhand Dashboard</h1>
-        <div className="bg-gray-800 flex items-center gap-x-2 rounded-lg shadow w-full md:w-1/4">
+        <div className="bg-white flex items-center gap-x-2 rounded-lg w-full md:w-1/4">
           <label
             htmlFor="metric-select"
             className="font-semibold whitespace-nowrap"
@@ -308,7 +325,7 @@ const App: React.FC = () => {
                 e.target.value as "literacy" | "income" | "population"
               )
             }
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="literacy">Literacy Rate</option>
             <option value="income">Average Income</option>
@@ -316,13 +333,13 @@ const App: React.FC = () => {
           </select>
         </div>
         <nav className="space-x-6 text-sm">
-          <a href="#" className="hover:text-blue-400">
+          <a href="#" className="hover:text-blue-600">
             Home
           </a>
-          <a href="#" className="hover:text-blue-400">
+          <a href="#" className="hover:text-blue-600">
             Reports
           </a>
-          <a href="#" className="hover:text-blue-400">
+          <a href="#" className="hover:text-blue-600">
             Settings
           </a>
         </nav>
@@ -330,7 +347,7 @@ const App: React.FC = () => {
 
       <main className="flex-1 p-6 flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-start gap-4">
-          <div className="flex items-center gap-x-2 rounded-lg shadow w-full md:w-1/3">
+          <div className="flex items-center gap-x-2 rounded-lg w-full md:w-1/3">
             <label
               htmlFor="gender-select"
               className="block mb-2 font-semibold whitespace-nowrap"
@@ -341,7 +358,7 @@ const App: React.FC = () => {
               id="gender-select"
               value={selectedGender}
               onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {Object.entries(genderDisplayNames).map(([key, display]) => (
                 <option key={key} value={key}>
@@ -350,27 +367,7 @@ const App: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-x-2 rounded-lg shadow w-full md:w-1/3">
-            <label
-              htmlFor="gender-select"
-              className="block mb-2 font-semibold whitespace-nowrap"
-            >
-              Select Gender
-            </label>
-            <select
-              id="gender-select"
-              value={selectedGender}
-              onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {Object.entries(genderDisplayNames).map(([key, display]) => (
-                <option key={key} value={key}>
-                  {display}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-x-2 rounded-lg shadow w-full md:w-1/3">
+          <div className="flex items-center gap-x-2 rounded-lg w-full md:w-1/3">
             <label
               htmlFor="age-select"
               className="block mb-2 font-semibold whitespace-nowrap"
@@ -381,9 +378,49 @@ const App: React.FC = () => {
               id="age-select"
               value={selectedAge}
               onChange={(e) => setSelectedAge(e.target.value as AgeKey)}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {Object.entries(ageDisplayNames).map(([key, display]) => (
+                <option key={key} value={key}>
+                  {display}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-x-2 rounded-lg w-full md:w-1/3">
+            <label
+              htmlFor="gender-select"
+              className="block mb-2 font-semibold whitespace-nowrap"
+            >
+              Select Caste
+            </label>
+            <select
+              id="gender-select"
+              value={selectedGender}
+              onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
+              className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {Object.entries(secDisplayNames).map(([key, display]) => (
+                <option key={key} value={key}>
+                  {display}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-x-2 rounded-lg w-full md:w-1/3">
+            <label
+              htmlFor="gender-select"
+              className="block mb-2 font-semibold whitespace-nowrap"
+            >
+              Select SEC
+            </label>
+            <select
+              id="gender-select"
+              value={selectedGender}
+              onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
+              className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {Object.entries(incomeGroupDisplayNAmes).map(([key, display]) => (
                 <option key={key} value={key}>
                   {display}
                 </option>
@@ -394,27 +431,27 @@ const App: React.FC = () => {
 
         {kpis && (
           <div className="flex flex-col md:flex-row gap-4 w-full">
-            <div className="bg-gray-800 p-4 rounded-lg shadow text-center w-full">
+            <div className="bg-white p-4 rounded-lg shadow text-center w-full">
               <h2 className="text-sm font-semibold">
                 Average {getFullMetricName()}
               </h2>
-              <p className="text-xl font-bold text-blue-400">
+              <p className="text-xl font-bold text-blue-600">
                 {formatMetricValue(selectedMetric, kpis.average)}
               </p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-lg shadow text-center w-full">
+            <div className="bg-white p-4 rounded-lg shadow text-center w-full">
               <h2 className="text-sm font-semibold">
                 Minimum {getFullMetricName()}
               </h2>
-              <p className="text-xl font-bold text-blue-400">
+              <p className="text-xl font-bold text-blue-600">
                 {formatMetricValue(selectedMetric, kpis.min)}
               </p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-lg shadow text-center w-full">
+            <div className="bg-white p-4 rounded-lg shadow text-center w-full">
               <h2 className="text-sm font-semibold">
                 Maximum {getFullMetricName()}
               </h2>
-              <p className="text-xl font-bold text-blue-400">
+              <p className="text-xl font-bold text-blue-600">
                 {formatMetricValue(selectedMetric, kpis.max)}
               </p>
             </div>
@@ -441,7 +478,7 @@ const App: React.FC = () => {
                     fillColor: getColor(selectedMetric, value),
                     weight: 1,
                     opacity: 1,
-                    color: "#FFFFFF",
+                    color: "#000000",
                     fillOpacity: 0.8,
                   };
                 }}
@@ -457,7 +494,7 @@ const App: React.FC = () => {
                   const fullMetricName = getFullMetricName();
                   const officer = officerNames[id] || "N/A";
                   layer.bindTooltip(
-                    `<div style="background-color: #1F2937; color: #FFFFFF; padding: 8px; border-radius: 4px; font-size: 14px;">
+                    `<div style="background-color: #F3F4F6; color: #1F2937; padding: 8px; border-radius: 4px; font-size: 14px;">
                       <strong>Area:</strong> ${name}<br/>
                       <strong>${fullMetricName}:</strong> ${formattedValue}<br/>
                       <strong>Officer In-Charge:</strong> ${officer}
@@ -470,7 +507,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="w-2/5 flex flex-col items-center gap-6">
-            <div className="bg-gray-800 p-4 rounded-lg shadow">
+            <div className="bg-white p-4 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-2">
                 Distribution of {getFullMetricName()}
               </h2>
@@ -493,7 +530,7 @@ const App: React.FC = () => {
               </PieChart>
             </div>
             <div
-              className="bg-gray-800 p-4 rounded-lg shadow overflow-y-auto"
+              className="bg-white p-4 rounded-lg shadow overflow-y-auto"
               style={{ maxHeight: "600px" }}
             >
               <h2 className="text-lg font-semibold mb-2">
@@ -538,7 +575,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <footer className="text-center text-sm p-4 bg-gray-800">
+      <footer className="text-center text-sm p-4 bg-white text-gray-900">
         © 2025 Uttarakhand Dashboard. All rights reserved.
       </footer>
     </div>
