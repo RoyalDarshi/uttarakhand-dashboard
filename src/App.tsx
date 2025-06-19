@@ -9,7 +9,7 @@ interface MetricData {
 }
 
 interface GeoJSONFeature {
-  properties: { "@id": string };
+  properties: { "@id": string; name: string };
   geometry: { type: string };
 }
 
@@ -54,8 +54,6 @@ const App: React.FC = () => {
             return coordCount < 2550;
           }),
         };
-
-        setPolygonData(filtered);
 
         setPolygonData(filtered);
 
@@ -123,6 +121,13 @@ const App: React.FC = () => {
       return "#FEE2E2"; // Very Light Red
     }
     return "#E5E7EB"; // Fallback: Gray
+  };
+
+  const formatMetricValue = (metric: string, value: number): string => {
+    if (metric === "literacy") return `${value.toFixed(1)}%`;
+    if (metric === "income") return `₹${value.toLocaleString()}`;
+    if (metric === "population") return value.toLocaleString();
+    return value.toString();
   };
 
   if (error) return <div className="text-red-500 p-4">Error: {error}</div>;
@@ -207,6 +212,7 @@ const App: React.FC = () => {
             style={{ width: "100%", height: "100%" }}
           >
             <GeoJSON
+              key={selectedMetric} // Force re-render when selectedMetric changes
               data={polygonData}
               style={(feature) => {
                 const id = feature?.properties["@id"];
@@ -236,6 +242,29 @@ const App: React.FC = () => {
                   fillOpacity: 0.8,
                 };
               }}
+              onEachFeature={(feature, layer) => {
+                const id = feature.properties["@id"];
+                const name = feature.properties.name || "Unknown Area"; // Fallback if name is missing
+                const value = metricData[id]?.[selectedMetric] || 0;
+                const formattedValue = formatMetricValue(selectedMetric, value);
+                const metricName =
+                  selectedMetric === "income"
+                    ? "Average Income"
+                    : selectedMetric.charAt(0).toUpperCase() +
+                      selectedMetric.slice(1);
+
+                layer.bindTooltip(
+                  `<div style="background-color: #1F2937; color: #FFFFFF; padding: 8px; border-radius: 4px; font-size: 14px;">
+                    <strong>Area:</strong> ${name}<br/>
+                    <strong>${metricName}:</strong> ${formattedValue}
+                  </div>`,
+                  {
+                    sticky: true, // Tooltip follows mouse
+                    offset: [10, 10], // Slight offset for better positioning
+                    direction: "auto", // Automatically adjust direction
+                  }
+                );
+              }}
             />
           </MapContainer>
         </div>
@@ -243,7 +272,7 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="text-center text-sm p-4 bg-gray-800">
-        &copy; 2025 Uttarakhand Dashboard. All rights reserved.
+        © 2025 Uttarakhand Dashboard. All rights reserved.
       </footer>
     </div>
   );
