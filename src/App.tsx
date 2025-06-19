@@ -91,19 +91,18 @@ const App: React.FC = () => {
   const kpis = useMemo(() => {
     if (!metricData) return null;
     const areas = Object.values(metricData);
-    const totalPopulation = areas.reduce(
-      (sum, area) => sum + area.population,
-      0
-    );
-    const averageLiteracy =
-      areas.reduce((sum, area) => sum + area.literacy, 0) / areas.length;
-    const averageIncome =
-      areas.reduce((sum, area) => sum + area.income, 0) / areas.length;
-    return { totalPopulation, averageLiteracy, averageIncome };
-  }, [metricData]);
+    const values = areas.map((area) => area[selectedMetric]);
+
+    let average = values.reduce((sum, val) => sum + val, 0) / values.length;
+    average = Number(average.toFixed(2)); // Round to 1 decimal place
+    if (selectedMetric === "population") average = Math.floor(average); // Round to nearest whole number
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    return { average, min, max };
+  }, [metricData, selectedMetric]);
 
   const getColor = (metric: string, value: number): string => {
-    // Modern, accessible sequential color schemes
     if (metric === "literacy") {
       if (value >= 90) return "#1E3A8A"; // Dark Blue
       if (value >= 80) return "#3B82F6"; // Blue
@@ -128,6 +127,42 @@ const App: React.FC = () => {
     if (metric === "income") return `₹${value.toLocaleString()}`;
     if (metric === "population") return value.toLocaleString();
     return value.toString();
+  };
+
+  // Legend configuration
+  const getLegendItems = (metric: string) => {
+    if (metric === "literacy") {
+      return [
+        { color: "#DBEAFE", label: "< 70%" },
+        { color: "#93C5FD", label: "70–80%" },
+        { color: "#3B82F6", label: "80–90%" },
+        { color: "#1E3A8A", label: "≥ 90%" },
+      ];
+    } else if (metric === "income") {
+      return [
+        { color: "#BBF7D0", label: "< ₹30,000" },
+        { color: "#4ADE80", label: "₹30,000–50,000" },
+        { color: "#16A34A", label: "₹50,000–80,000" },
+        { color: "#14532D", label: "≥ ₹80,000" },
+      ];
+    } else if (metric === "population") {
+      return [
+        { color: "#FEE2E2", label: "< 100,000" },
+        { color: "#FDBA74", label: "100,000–200,000" },
+        { color: "#F97316", label: "200,000–500,000" },
+        { color: "#7C2D12", label: "≥ 500,000" },
+      ];
+    }
+    return [];
+  };
+
+  // Get metric display name for KPIs and legend
+  const getMetricDisplayName = (metric: string): string => {
+    return metric === "income"
+      ? "Average Income"
+      : metric === "literacy"
+      ? "Literacy Rate"
+      : "Population";
   };
 
   if (error) return <div className="text-red-500 p-4">Error: {error}</div>;
@@ -181,21 +216,27 @@ const App: React.FC = () => {
           {kpis && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
               <div className="bg-gray-800 p-4 rounded-lg shadow text-center">
-                <h2 className="text-sm font-semibold">Average Literacy</h2>
+                <h2 className="text-sm font-semibold">
+                  Average {getMetricDisplayName(selectedMetric)}
+                </h2>
                 <p className="text-xl font-bold text-blue-400">
-                  {kpis.averageLiteracy.toFixed(1)}%
+                  {formatMetricValue(selectedMetric, kpis.average)}
                 </p>
               </div>
               <div className="bg-gray-800 p-4 rounded-lg shadow text-center">
-                <h2 className="text-sm font-semibold">Total Population</h2>
+                <h2 className="text-sm font-semibold">
+                  Minimum {getMetricDisplayName(selectedMetric)}
+                </h2>
                 <p className="text-xl font-bold text-blue-400">
-                  {kpis.totalPopulation.toLocaleString()}
+                  {formatMetricValue(selectedMetric, kpis.min)}
                 </p>
               </div>
               <div className="bg-gray-800 p-4 rounded-lg shadow text-center">
-                <h2 className="text-sm font-semibold">Average Income</h2>
+                <h2 className="text-sm font-semibold">
+                  Maximum {getMetricDisplayName(selectedMetric)}
+                </h2>
                 <p className="text-xl font-bold text-blue-400">
-                  ₹{kpis.averageIncome.toFixed(0)}
+                  {formatMetricValue(selectedMetric, kpis.max)}
                 </p>
               </div>
             </div>
@@ -203,7 +244,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Map */}
-        <div className="rounded-lg overflow-hidden shadow-lg h-[600px]">
+        <div className="rounded-lg overflow-hidden shadow-lg h-[600px] relative">
           <MapContainer
             center={[30.09, 79.0193]}
             zoom={8}
@@ -212,7 +253,7 @@ const App: React.FC = () => {
             style={{ width: "100%", height: "100%" }}
           >
             <GeoJSON
-              key={selectedMetric} // Force re-render when selectedMetric changes
+              key={selectedMetric}
               data={polygonData}
               style={(feature) => {
                 const id = feature?.properties["@id"];
@@ -244,14 +285,10 @@ const App: React.FC = () => {
               }}
               onEachFeature={(feature, layer) => {
                 const id = feature.properties["@id"];
-                const name = feature.properties.name || "Unknown Area"; // Fallback if name is missing
+                const name = feature.properties.name || "Unknown Area";
                 const value = metricData[id]?.[selectedMetric] || 0;
                 const formattedValue = formatMetricValue(selectedMetric, value);
-                const metricName =
-                  selectedMetric === "income"
-                    ? "Average Income"
-                    : selectedMetric.charAt(0).toUpperCase() +
-                      selectedMetric.slice(1);
+                const metricName = getMetricDisplayName(selectedMetric);
 
                 layer.bindTooltip(
                   `<div style="background-color: #1F2937; color: #FFFFFF; padding: 8px; border-radius: 4px; font-size: 14px;">
@@ -259,14 +296,47 @@ const App: React.FC = () => {
                     <strong>${metricName}:</strong> ${formattedValue}
                   </div>`,
                   {
-                    sticky: true, // Tooltip follows mouse
-                    offset: [10, 10], // Slight offset for better positioning
-                    direction: "auto", // Automatically adjust direction
+                    sticky: true,
+                    offset: [10, 10],
+                    direction: "auto",
                   }
                 );
               }}
             />
           </MapContainer>
+
+          {/* Legend */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "20px",
+              right: "20px",
+              backgroundColor: "rgba(31, 41, 55, 0.9)",
+              padding: "10px",
+              borderRadius: "4px",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              zIndex: 1000,
+            }}
+          >
+            <h4 className="text-sm font-semibold mb-2">
+              {getMetricDisplayName(selectedMetric)}
+            </h4>
+            {getLegendItems(selectedMetric).map((item, index) => (
+              <div key={index} className="flex items-center mb-1">
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "16px",
+                    height: "16px",
+                    backgroundColor: item.color,
+                    marginRight: "8px",
+                    border: "1px solid #FFFFFF",
+                  }}
+                ></span>
+                <span className="text-xs">{item.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
 
