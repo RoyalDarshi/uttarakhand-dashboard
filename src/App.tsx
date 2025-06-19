@@ -62,16 +62,14 @@ const App: React.FC = () => {
         // Generate realistic metric data
         const areas = filtered.features.map((f) => f.properties["@id"]);
         const dataMap: Record<string, MetricData> = {};
-        areas.forEach((areaId, index) => {
-          // Seed-based pseudo-random for consistency
-          const seed = index * 17 + 23;
-          const pseudoRandom = (max: number, min: number) =>
-            min + (((seed * 9301 + 49297) % 233280) / 233280) * (max - min);
+        areas.forEach((areaId) => {
+          const getRandom = (min: number, max: number) =>
+            Math.random() * (max - min) + min;
 
           dataMap[areaId] = {
-            literacy: Number(pseudoRandom(95, 60).toFixed(1)), // 60% to 95%
-            income: Math.floor(pseudoRandom(100000, 20000)), // ₹20,000 to ₹100,000
-            population: Math.floor(pseudoRandom(1000000, 5000)), // 5,000 to 1,000,000
+            literacy: Number(getRandom(60, 95).toFixed(1)), // 60% to 95%
+            income: Math.floor(getRandom(20000, 100000)), // ₹20,000 to ₹100,000
+            population: Math.floor(getRandom(5000, 1000000)), // 5,000 to 1,000,000
           };
         });
 
