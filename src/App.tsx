@@ -384,8 +384,8 @@ const App: React.FC = () => {
             </label>
             <select
               id="caste-select"
-              value={selectedGender}
-              onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
+              // value={selectedGender}
+              // onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
               className="p-1 bg-gray-50 border border-gray-300 rounded-md text-sm"
             >
               {Object.entries(secDisplayNames).map(([key, display]) => (
@@ -401,8 +401,8 @@ const App: React.FC = () => {
             </label>
             <select
               id="sec-select"
-              value={selectedGender}
-              onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
+              // value={selectedGender}
+              // onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
               className="p-1 bg-gray-50 border border-gray-300 rounded-md text-sm"
             >
               {Object.entries(incomeGroupDisplayNames).map(([key, display]) => (
