@@ -28,7 +28,11 @@ const App: React.FC = () => {
         // Generate dummy data for each area
         const areas = filtered.features.map((f: any) => f.properties.name);
         const dummy = areas.reduce((acc: any, area: string) => {
-          acc[area] = { literacy: Math.floor(Math.random() * 100) }; // Random value 0-100
+          acc[area] = {
+            literacy: Math.floor(Math.random() * 100), // 0-100%
+            income: Math.floor(Math.random() * 90000) + 10000, // 10,000 to 100,000
+            population: Math.floor(Math.random() * 999000) + 1000, // 1,000 to 1,000,000
+          };
           return acc;
         }, {});
         setDummyData(dummy);
@@ -39,12 +43,25 @@ const App: React.FC = () => {
       });
   }, []);
 
-  // Function to determine color based on metric value
-  const getColor = (value: number): string => {
-    if (value >= 90) return "#00008B"; // Dark blue
-    if (value >= 75) return "#0000FF"; // Medium blue
-    if (value >= 60) return "#ADD8E6"; // Light blue
-    return "#E0FFFF"; // Very light blue
+  // Function to determine color based on metric and value
+  const getColor = (metric: string, value: number): string => {
+    if (metric === "literacy") {
+      if (value >= 90) return "#00008B"; // Dark blue
+      if (value >= 75) return "#0000FF"; // Medium blue
+      if (value >= 60) return "#ADD8E6"; // Light blue
+      return "#E0FFFF"; // Very light blue
+    } else if (metric === "income") {
+      if (value >= 80000) return "#00008B";
+      if (value >= 50000) return "#0000FF";
+      if (value >= 30000) return "#ADD8E6";
+      return "#E0FFFF";
+    } else if (metric === "population") {
+      if (value >= 500000) return "#00008B";
+      if (value >= 100000) return "#0000FF";
+      if (value >= 50000) return "#ADD8E6";
+      return "#E0FFFF";
+    }
+    return "#E0FFFF"; // Default color
   };
 
   if (error) return <div>Error: {error}</div>;
@@ -72,10 +89,15 @@ const App: React.FC = () => {
           id="metric-select"
           value={selectedMetric}
           onChange={(e) => setSelectedMetric(e.target.value)}
-          style={{ padding: "5px" }}
+          style={{
+            padding: "5px",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+          }}
         >
           <option value="literacy">Literacy Rate</option>
-          {/* Add more metrics here as needed */}
+          <option value="income">Average Income</option>
+          <option value="population">Population</option>
         </select>
       </div>
 
@@ -99,7 +121,7 @@ const App: React.FC = () => {
             const value =
               dummyData[feature?.properties.name]?.[selectedMetric] || 0;
             return {
-              fillColor: getColor(value),
+              fillColor: getColor(selectedMetric, value),
               weight: 1,
               opacity: 1,
               color: "white",
