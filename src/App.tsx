@@ -21,6 +21,8 @@ interface MetricValues {
 
 type GenderKey = "all" | "male" | "female" | "other";
 type AgeKey = "all" | "age0_18" | "age19_35" | "age36_50" | "age51_plus";
+type CasteKey = "all" | "obc" | "sc" | "st" | "oc";
+type SECKey = "all" | "bpl" | "low" | "middle" | "high" | "affluent";
 
 type AreaMetricData = Record<string, MetricValues>;
 
@@ -41,7 +43,7 @@ const genderDisplayNames: Record<GenderKey, string> = {
   other: "Other",
 };
 
-const secDisplayNames: Record<string, string> = {
+const secDisplayNames: Record<CasteKey, string> = {
   all: "All Castes",
   obc: "Other Backward Classes",
   sc: "Scheduled Castes",
@@ -49,7 +51,7 @@ const secDisplayNames: Record<string, string> = {
   oc: "Open Category",
 };
 
-const incomeGroupDisplayNames: Record<string, string> = {
+const incomeGroupDisplayNames: Record<SECKey, string> = {
   all: "All SECs",
   bpl: "Below Poverty Line",
   low: "Low Income",
@@ -77,6 +79,8 @@ const App: React.FC = () => {
   >("literacy");
   const [selectedGender, setSelectedGender] = useState<GenderKey>("all");
   const [selectedAge, setSelectedAge] = useState<AgeKey>("all");
+  const [selectedCaste, setSelectedCaste] = useState<CasteKey>("all");
+  const [selectedSEC, setSelectedSEC] = useState<SECKey>("all");
   const [error, setError] = useState<string | null>(null);
 
   const officerNames = useMemo(() => {
@@ -182,7 +186,7 @@ const App: React.FC = () => {
 
   const demographicKey = useMemo(() => {
     return `${selectedGender}_${selectedAge}` as string;
-  }, [selectedGender, selectedAge]);
+  }, [selectedGender, selectedAge, selectedCaste, selectedSEC]);
 
   const kpis = useMemo(() => {
     if (!metricData) return null;
@@ -202,7 +206,7 @@ const App: React.FC = () => {
       if (value >= 90) return "#1E3A8A";
       if (value >= 80) return "#3B82F6";
       if (value >= 70) return "#93C5FD";
-      return "#DBEAFE";
+      return "#DBEFFE";
     } else if (metric === "income") {
       if (value >= 80000) return "#14532D";
       if (value >= 50000) return "#16A34A";
@@ -210,8 +214,8 @@ const App: React.FC = () => {
       return "#BBF7D0";
     } else if (metric === "population") {
       if (value >= 500000) return "#7C2D12";
-      if (value >= 200000) return "#F97316";
-      if (value >= 100000) return "#FDBA74";
+      if (value >= 100000) return "#F97316";
+      if (value >= 200000) return "#FDBA74";
       return "#FEE2E2";
     }
     return "#E5E7EB";
@@ -236,13 +240,16 @@ const App: React.FC = () => {
     const metricName = getMetricDisplayName(selectedMetric);
     const genderName = genderDisplayNames[selectedGender];
     const ageName = ageDisplayNames[selectedAge];
+    const casteName = secDisplayNames[selectedCaste];
+    const secName = incomeGroupDisplayNames[selectedSEC];
     let demographicName = "Overall";
-    if (selectedGender !== "all" && selectedAge !== "all") {
-      demographicName = `${genderName}, ${ageName}`;
-    } else if (selectedGender !== "all") {
-      demographicName = genderName;
-    } else if (selectedAge !== "all") {
-      demographicName = ageName;
+    const filters = [];
+    if (selectedGender !== "all") filters.push(genderName);
+    if (selectedAge !== "all") filters.push(ageName);
+    if (selectedCaste !== "all") filters.push(casteName);
+    if (selectedSEC !== "all") filters.push(secName);
+    if (filters.length > 0) {
+      demographicName = filters.join(", ");
     }
     return `${metricName} (${demographicName})`;
   };
@@ -298,7 +305,7 @@ const App: React.FC = () => {
         const value = metricData[id]?.[demographicKey]?.[selectedMetric];
         return value !== undefined ? { name, value } : null;
       })
-      .filter((item) => item !== null);
+      .filter((item) => item !== null) as { name: string; value: number }[];
     return data.sort((a, b) => b.value - a.value);
   }, [metricData, polygonData, selectedMetric, demographicKey]);
 
@@ -307,11 +314,16 @@ const App: React.FC = () => {
     return <div className="p-4 text-gray-900">Loading map...</div>;
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-gray-100 text-gray-900 overflow-hidden">
-      <header className="w-full flex justify-between items-center px-4 py-2 bg-white shadow-md">
-        <h1 className="text-lg font-bold">Uttarakhand Dashboard</h1>
+    <div className="min-h-screen w-full flex flex-col bg-gray-100 text-gray-900">
+      <header className="w-full flex flex-col sm:flex-row justify-between items-center px-4 py-2 bg-white shadow-md gap-2">
+        <h1 className="text-base sm:text-lg font-bold">
+          Uttarakhand Dashboard
+        </h1>
         <div className="flex items-center gap-x-2">
-          <label htmlFor="metric-select" className="font-semibold text-sm">
+          <label
+            htmlFor="metric-select"
+            className="font-semibold text-xs sm:text-sm"
+          >
             Metric
           </label>
           <select
@@ -322,14 +334,14 @@ const App: React.FC = () => {
                 e.target.value as "literacy" | "income" | "population"
               )
             }
-            className="p-1 bg-gray-50 border border-gray-300 rounded-md text-sm"
+            className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
           >
             <option value="literacy">Literacy Rate</option>
             <option value="income">Average Income</option>
             <option value="population">Population</option>
           </select>
         </div>
-        <nav className="space-x-4 text-sm">
+        <nav className="space-x-4 text-xs sm:text-sm">
           <a href="#" className="hover:text-blue-600">
             Home
           </a>
@@ -342,17 +354,20 @@ const App: React.FC = () => {
         </nav>
       </header>
 
-      <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+      <main className="flex-1 flex flex-col p-2 sm:p-4 gap-2 sm:gap-4">
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-x-2">
-            <label htmlFor="gender-select" className="font-semibold text-sm">
+            <label
+              htmlFor="gender-select"
+              className="font-semibold text-xs sm:text-sm"
+            >
               Gender
             </label>
             <select
               id="gender-select"
               value={selectedGender}
               onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
-              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-sm"
+              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
             >
               {Object.entries(genderDisplayNames).map(([key, display]) => (
                 <option key={key} value={key}>
@@ -362,14 +377,17 @@ const App: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center gap-x-2">
-            <label htmlFor="age-select" className="font-semibold text-sm">
-              Age Group
+            <label
+              htmlFor="age-select"
+              className="font-semibold text-xs sm:text-sm"
+            >
+              Age
             </label>
             <select
               id="age-select"
               value={selectedAge}
               onChange={(e) => setSelectedAge(e.target.value as AgeKey)}
-              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-sm"
+              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
             >
               {Object.entries(ageDisplayNames).map(([key, display]) => (
                 <option key={key} value={key}>
@@ -379,14 +397,17 @@ const App: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center gap-x-2">
-            <label htmlFor="caste-select" className="font-semibold text-sm">
+            <label
+              htmlFor="caste-select"
+              className="font-semibold text-xs sm:text-sm"
+            >
               Caste
             </label>
             <select
               id="caste-select"
-              // value={selectedGender}
-              // onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
-              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-sm"
+              value={selectedCaste}
+              onChange={(e) => setSelectedCaste(e.target.value as CasteKey)}
+              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
             >
               {Object.entries(secDisplayNames).map(([key, display]) => (
                 <option key={key} value={key}>
@@ -396,14 +417,17 @@ const App: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center gap-x-2">
-            <label htmlFor="sec-select" className="font-semibold text-sm">
+            <label
+              htmlFor="sec-select"
+              className="font-semibold text-xs sm:text-sm"
+            >
               SEC
             </label>
             <select
               id="sec-select"
-              // value={selectedGender}
-              // onChange={(e) => setSelectedGender(e.target.value as GenderKey)}
-              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-sm"
+              value={selectedSEC}
+              onChange={(e) => setSelectedSEC(e.target.value as SECKey)}
+              className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
             >
               {Object.entries(incomeGroupDisplayNames).map(([key, display]) => (
                 <option key={key} value={key}>
@@ -415,42 +439,42 @@ const App: React.FC = () => {
         </div>
 
         {kpis && (
-          <div className="flex gap-2">
-            <div className="bg-white p-2 rounded-lg shadow text-center flex-1">
+          <div className="flex flex-wrap gap-2">
+            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[100px]">
               <h2 className="text-xs font-semibold">
                 Average {getFullMetricName()}
               </h2>
-              <p className="text-sm font-bold text-blue-600">
+              <p className="text-xs sm:text-sm font-bold text-blue-600">
                 {formatMetricValue(selectedMetric, kpis.average)}
               </p>
             </div>
-            <div className="bg-white p-2 rounded-lg shadow text-center flex-1">
+            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[100px]">
               <h2 className="text-xs font-semibold">
                 Minimum {getFullMetricName()}
               </h2>
-              <p className="text-sm font-bold text-blue-600">
+              <p className="text-xs sm:text-sm font-bold text-blue-600">
                 {formatMetricValue(selectedMetric, kpis.min)}
               </p>
             </div>
-            <div className="bg-white p-2 rounded-lg shadow text-center flex-1">
+            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[100px]">
               <h2 className="text-xs font-semibold">
                 Maximum {getFullMetricName()}
               </h2>
-              <p className="text-sm font-bold text-blue-600">
+              <p className="text-xs sm:text-sm font-bold text-blue-600">
                 {formatMetricValue(selectedMetric, kpis.max)}
               </p>
             </div>
           </div>
         )}
 
-        <div className="flex flex-1 gap-4 h-full">
-          <div className="w-1/2 bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <div className="w-full sm:w-1/2 bg-white rounded-lg shadow-lg overflow-hidden">
             <MapContainer
               center={[30.09, 79.0193]}
               zoom={8}
               scrollWheelZoom={false}
               zoomControl={false}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", height: "100%", minHeight: "200px" }}
             >
               <GeoJSON
                 key={`${selectedMetric}-${demographicKey}`}
@@ -479,10 +503,10 @@ const App: React.FC = () => {
                   const fullMetricName = getFullMetricName();
                   const officer = officerNames[id] || "N/A";
                   layer.bindTooltip(
-                    `<div style="background-color: #F3F4F6; color: #1F2937; padding: 8px; border-radius: 4px; font-size: 12px;">
+                    `<div style="background-color: #F3F4F6; color: #1F2937; padding: 6px; border-radius: 4px; font-size: 10px;">
                       <strong>Area:</strong> ${name}<br/>
                       <strong>${fullMetricName}:</strong> ${formattedValue}<br/>
-                      <strong>Officer In-Charge:</strong> ${officer}
+                      <strong>Officer:</strong> ${officer}
                     </div>`,
                     { sticky: true, offset: [10, 10], direction: "auto" }
                   );
@@ -490,48 +514,57 @@ const App: React.FC = () => {
               />
             </MapContainer>
           </div>
-          <div className="w-1/2 flex flex-col gap-4 justify-center">
-            <div className="bg-white p-4 rounded-lg shadow flex-1 flex flex-col justify-center items-center">
-              <h2 className="text-sm font-semibold mb-2">
+          <div className="w-full sm:w-1/2 flex flex-col gap-2 sm:gap-4">
+            <div className="bg-white p-2 rounded-lg shadow flex-1">
+              <h2 className="text-xs sm:text-sm font-semibold mb-1">
                 Distribution of {getFullMetricName()}
               </h2>
-              <PieChart width={300} height={250}>
+              <PieChart
+                width={window.innerWidth < 640 ? 150 : 200}
+                height={window.innerWidth < 640 ? 150 : 180}
+              >
                 <Pie
                   data={pieData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
-                  label
+                  outerRadius={window.innerWidth < 640 ? 60 : 80}
+                  label={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip formatter={(value, name) => [value, name]} />
+                <Legend
+                  wrapperStyle={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
+                />
               </PieChart>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow flex-1 flex flex-col justify-center items-center overflow-y-auto">
-              <h2 className="text-sm font-semibold mb-2">
+            <div className="bg-white p-2 rounded-lg shadow flex-1 overflow-y-auto">
+              <h2 className="text-xs sm:text-sm font-semibold mb-1">
                 {getFullMetricName()} by Area
               </h2>
               <BarChart
                 layout="horizontal"
-                width={300}
-                height={250}
+                width={window.innerWidth < 640 ? 150 : 200}
+                height={window.innerWidth < 640 ? 150 : 180}
                 data={barData}
-                margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+                margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
               >
                 <YAxis
                   type="number"
                   tickFormatter={(value) =>
                     formatMetricValue(selectedMetric, value)
                   }
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
                 />
-                <XAxis type="category" dataKey="name" tick={{ fontSize: 10 }} />
+                <XAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
+                />
                 <Tooltip
                   formatter={(value: number) => [
                     formatMetricValue(selectedMetric, value),
