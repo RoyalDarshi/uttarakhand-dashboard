@@ -88,7 +88,7 @@ const App: React.FC = () => {
       "Amit Kumar",
       "Priya Sharma",
       "Rajesh Singh",
-      "Anjali Devi",
+      "Anjali Devi ",
       "Sanjay Yadav",
       "Neha Gupta",
       "Vikram Rathore",
@@ -116,7 +116,7 @@ const App: React.FC = () => {
   }, [polygonData]);
 
   useEffect(() => {
-    fetch("/uttarakhand-multilevel.geojson")
+    fetch("/UPBoundaries.geojson")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch GeoJSON");
         return res.json();
@@ -134,7 +134,7 @@ const App: React.FC = () => {
             } else if (type === "MultiPolygon") {
               coordCount = coords.coordinates?.flat(2)?.length ?? 0;
             }
-            return coordCount < 2550;
+            return coordCount;
           }),
         };
         setPolygonData(filtered);
@@ -203,10 +203,10 @@ const App: React.FC = () => {
 
   const getColor = (metric: string, value: number): string => {
     if (metric === "literacy") {
-      if (value >= 90) return "#1E3A8A";
-      if (value >= 80) return "#3B82F6";
-      if (value >= 70) return "#93C5FD";
-      return "#DBEFFE";
+      if (value >= 90) return "#9B72CC";
+      if (value >= 80) return "#BC9AE6";
+      if (value >= 70) return "#DCC6F6";
+      return "#F3E8FF";
     } else if (metric === "income") {
       if (value >= 80000) return "#14532D";
       if (value >= 50000) return "#16A34A";
@@ -214,8 +214,8 @@ const App: React.FC = () => {
       return "#BBF7D0";
     } else if (metric === "population") {
       if (value >= 500000) return "#7C2D12";
-      if (value >= 100000) return "#F97316";
-      if (value >= 200000) return "#FDBA74";
+      if (value >= 200000) return "#F97316";
+      if (value >= 100000) return "#FDBA74";
       return "#FEE2E2";
     }
     return "#E5E7EB";
@@ -256,8 +256,8 @@ const App: React.FC = () => {
 
   const brackets = {
     literacy: [
-      { label: "<70%", min: 0, max: 70, color: "#DBEAFE" },
-      { label: "70-80%", min: 70, max: 80, color: "#93C5FD" },
+      { label: "<70%", min: 0, max: 70, color: "#E6E6FA" },
+      { label: "70-80%", min: 70, max: 80, color: "#BFA2DB" },
       { label: "80-90%", min: 80, max: 90, color: "#3B82F6" },
       { label: ">=90%", min: 90, max: 100, color: "#1E3A8A" },
     ],
@@ -309,15 +309,20 @@ const App: React.FC = () => {
     return data.sort((a, b) => b.value - a.value);
   }, [metricData, polygonData, selectedMetric, demographicKey]);
 
-  if (error) return <div className="text-red-500 p-4">Error: {error}</div>;
+  if (error)
+    return (
+      <div className="text-red-500 p-2 text-xs sm:text-sm">Error: {error}</div>
+    );
   if (!polygonData || !metricData)
-    return <div className="p-4 text-gray-900">Loading map...</div>;
+    return (
+      <div className="p-2 text-gray-900 text-xs sm:text-sm">Loading map...</div>
+    );
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-gray-100 text-gray-900">
-      <header className="w-full flex flex-col sm:flex-row justify-between items-center px-4 py-2 bg-white shadow-md gap-2">
+      <header className="w-full flex flex-col sm:flex-row justify-between items-center px-2 sm:px-4 py-2 bg-white shadow-md gap-2">
         <h1 className="text-base sm:text-lg font-bold">
-          Uttarakhand Dashboard
+          Uttar Pradesh Dashboard
         </h1>
         <div className="flex items-center gap-x-2">
           <label
@@ -341,7 +346,7 @@ const App: React.FC = () => {
             <option value="population">Population</option>
           </select>
         </div>
-        <nav className="space-x-4 text-xs sm:text-sm">
+        <nav className="space-x-2 sm:space-x-4 text-xs sm:text-sm">
           <a href="#" className="hover:text-blue-600">
             Home
           </a>
@@ -440,7 +445,7 @@ const App: React.FC = () => {
 
         {kpis && (
           <div className="flex flex-wrap gap-2">
-            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[100px]">
+            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[80px] sm:min-w-[100px]">
               <h2 className="text-xs font-semibold">
                 Average {getFullMetricName()}
               </h2>
@@ -448,7 +453,7 @@ const App: React.FC = () => {
                 {formatMetricValue(selectedMetric, kpis.average)}
               </p>
             </div>
-            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[100px]">
+            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[80px] sm:min-w-[100px]">
               <h2 className="text-xs font-semibold">
                 Minimum {getFullMetricName()}
               </h2>
@@ -456,7 +461,7 @@ const App: React.FC = () => {
                 {formatMetricValue(selectedMetric, kpis.min)}
               </p>
             </div>
-            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[100px]">
+            <div className="bg-white p-2 rounded-lg shadow text-center flex-1 min-w-[80px] sm:min-w-[100px]">
               <h2 className="text-xs font-semibold">
                 Maximum {getFullMetricName()}
               </h2>
@@ -467,12 +472,12 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-4">
-          <div className="w-full sm:w-1/2 bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-4 h-full">
+          <div className="w-full sm:w-2/3 bg-white rounded-lg shadow-lg overflow-hidden">
             <MapContainer
-              center={[30.09, 79.0193]}
-              zoom={8}
-              scrollWheelZoom={false}
+              center={[27.197049, 80.52]}
+              zoom={7}
+              scrollWheelZoom={true}
               zoomControl={false}
               style={{ width: "100%", height: "100%", minHeight: "200px" }}
             >
@@ -485,10 +490,10 @@ const App: React.FC = () => {
                     metricData[id]?.[demographicKey]?.[selectedMetric] || 0;
                   return {
                     fillColor: getColor(selectedMetric, value),
-                    weight: 1,
+                    weight: 0.5,
                     opacity: 1,
                     color: "#000000",
-                    fillOpacity: 0.8,
+                    fillOpacity: 1,
                   };
                 }}
                 onEachFeature={(feature, layer) => {
@@ -514,14 +519,14 @@ const App: React.FC = () => {
               />
             </MapContainer>
           </div>
-          <div className="w-full sm:w-1/2 flex flex-col gap-2 sm:gap-4">
-            <div className="bg-white p-2 rounded-lg shadow flex-1">
+          <div className="w-full sm:w-1/2 flex flex-col gap-2 sm:gap-4 h-full">
+            <div className="bg-white p-2 rounded-lg shadow flex-1 flex flex-col justify-center items-center min-h-[150px]">
               <h2 className="text-xs sm:text-sm font-semibold mb-1">
                 Distribution of {getFullMetricName()}
               </h2>
               <PieChart
-                width={window.innerWidth < 640 ? 150 : 200}
-                height={window.innerWidth < 640 ? 150 : 180}
+                width={window.innerWidth < 640 ? 250 : 300}
+                height={window.innerWidth < 640 ? 250 : 280}
               >
                 <Pie
                   data={pieData}
@@ -530,26 +535,29 @@ const App: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   outerRadius={window.innerWidth < 640 ? 60 : 80}
-                  label={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
+                  label={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value, name) => [value, name]} />
+                <Tooltip
+                  formatter={(value, name) => [value, name]}
+                  wrapperStyle={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
+                />
                 <Legend
-                  wrapperStyle={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
+                  wrapperStyle={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
                 />
               </PieChart>
             </div>
-            <div className="bg-white p-2 rounded-lg shadow flex-1 overflow-y-auto">
+            <div className="bg-white p-2 rounded-lg shadow flex-1 flex flex-col justify-center items-center min-h-[150px] overflow-y-auto">
               <h2 className="text-xs sm:text-sm font-semibold mb-1">
                 {getFullMetricName()} by Area
               </h2>
               <BarChart
                 layout="horizontal"
-                width={window.innerWidth < 640 ? 150 : 200}
-                height={window.innerWidth < 640 ? 150 : 180}
+                width={window.innerWidth < 640 ? 350 : 900}
+                height={window.innerWidth < 640 ? 250 : 280}
                 data={barData}
                 margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
               >
@@ -570,6 +578,7 @@ const App: React.FC = () => {
                     formatMetricValue(selectedMetric, value),
                     getMetricDisplayName(selectedMetric),
                   ]}
+                  wrapperStyle={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
                 />
                 <Bar dataKey="value">
                   {barData.map((entry, index) => (
@@ -586,7 +595,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="text-center text-xs p-2 bg-white text-gray-900">
-        © 2025 Uttarakhand Dashboard. All rights reserved.
+        © 2025 Uttar Pradesh Dashboard. All rights reserved.
       </footer>
     </div>
   );
