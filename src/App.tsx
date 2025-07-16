@@ -609,13 +609,13 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-2 px-6 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Average</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                <div className="flex items-center space-x-4 ml-8">
+                  <p className="text-xl font-medium text-gray-600">Average</p>
+                  <p className="text-4xl font-bold text-blue-600">
                     {formatMetricValue(selectedMetric, kpis.average)}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl">
                   {getMetricIcon(selectedMetric)}
                 </div>
               </div>
@@ -623,9 +623,9 @@ const App: React.FC = () => {
 
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20  p-2 px-6 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Minimum</p>
-                  <p className="text-2xl font-bold text-green-600">
+                <div className="flex items-center space-x-4 ml-8">
+                  <p className="text-xl font-medium text-gray-600">Minimum</p>
+                  <p className="text-4xl font-bold text-green-600">
                     {formatMetricValue(selectedMetric, kpis.min)}
                   </p>
                 </div>
@@ -637,9 +637,9 @@ const App: React.FC = () => {
 
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-2 px-6 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Maximum</p>
-                  <p className="text-2xl font-bold text-purple-600">
+                <div className="flex items-center space-x-4 ml-8">
+                  <p className="text-xl font-medium text-gray-600">Maximum</p>
+                  <p className="text-4xl font-bold text-purple-600">
                     {formatMetricValue(selectedMetric, kpis.max)}
                   </p>
                 </div>
@@ -702,7 +702,7 @@ const App: React.FC = () => {
               <BarChart
                 layout="horizontal"
                 width={700}
-                height={window.innerWidth < 640 ? 250 : 280}
+                height={window.innerWidth < 640 ? 250 : 290}
                 data={barData}
                 margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
               >
