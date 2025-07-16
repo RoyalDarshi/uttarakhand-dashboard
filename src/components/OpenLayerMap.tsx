@@ -83,14 +83,19 @@ const newMap = new Map({
     tooltipElement.className = "ol-tooltip";
     tooltipElement.style.cssText = `
       position: absolute;
-      background-color: #F3F4F6;
-      color: #1F2937;
-      padding: 6px;
-      border-radius: 4px;
-      font-size: 10px;
+      background-color: rgba(31, 41, 55, 0.95); /* Slightly less transparent background */
+      color: #F9FAFB; /* Light text color */
+      padding: 10px 15px; /* Increased padding for more breathing room */
+      border-radius: 8px; /* More rounded corners */
+      font-size: 13px; /* Slightly larger font */
+      font-family: 'Inter', sans-serif; /* Specify a modern font */
       pointer-events: none;
       z-index: 1000;
-      max-width: 200px;
+      max-width: 350px; /* Increased max-width for the tooltip */
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* More pronounced shadow */
+      line-height: 1.6; /* Improved readability */
+      border: 1px solid rgba(255, 255, 255, 0.15); /* Subtle light border */
+      white-space: nowrap; /* Prevent text from wrapping */
     `;
 
     const tooltipOverlay = new Overlay({
@@ -120,7 +125,7 @@ const newMap = new Map({
         const officer = officerNames[id] || "N/A";
 
         tooltipElement.innerHTML = `
-          <strong>Area:</strong> ${name}<br/>
+          <strong>Area:</strong> ${name} &nbsp; <br/>
           <strong>${fullMetricName}:</strong> ${formattedValue}<br/>
           <strong>Officer:</strong> ${officer}
         `;
