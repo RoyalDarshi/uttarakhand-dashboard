@@ -6,6 +6,7 @@ import { GeoJSON } from "ol/format";
 import { Style, Fill, Stroke, Text } from "ol/style";
 import { fromLonLat } from "ol/proj";
 import { Overlay } from "ol";
+import { Zoom } from "ol/control";
 import { Feature } from "ol";
 import { Point } from "ol/geom";
 import {
@@ -13,6 +14,7 @@ import {
   MouseWheelZoom,
 } from "ol/interaction";
 import "ol/ol.css";
+import "./OpenLayersMap.css"; // Import custom styles for the map and tooltip
 
 interface OpenLayersMapProps {
   geoJsonData: any;
@@ -65,14 +67,19 @@ const newMap = new Map({
     minZoom: 5,
     maxZoom: 18,
   }),
+  controls: [
+    new Zoom({
+      className: "ol-zoom custom-zoom", // Custom class for styling
+    }),
+  ],
   interactions: defaultInteractions({
-    mouseWheelZoom: false, // disable default to prevent double zoom
+    mouseWheelZoom: false,
   }).extend([
     new MouseWheelZoom({
-      duration: 200,        // smooth animation
-      timeout: 100,         // throttle wheel events
-      useAnchor: true,      // zoom towards cursor
-      constrainResolution: false, // allow fluid zooming (better for touchpads)
+      duration: 200,
+      timeout: 100,
+      useAnchor: true,
+      constrainResolution: false,
     }),
   ]),
 });
