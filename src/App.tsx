@@ -208,13 +208,6 @@ const App: React.FC = () => {
     return "#6b7280";
   };
 
-  const casteColors: Record<CasteKey, string> = {
-    obc: "#60A5FA", // Light Blue
-    sc: "#F87171", // Light Red
-    st: "#34D399", // Light Green
-    oc: "#FBBF24", // Amber
-    all: "#A3A3A3", // Gray (not used)
-  };
 
   const formatMetricValue = (metric: string, value: number): string => {
     if (metric === "literacy") return `${value.toFixed(1)}%`;
@@ -345,6 +338,35 @@ const App: React.FC = () => {
     selectedAge,
     selectedSEC,
   ]);
+
+  const CustomBarTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-gray-300 rounded p-2 shadow text-xs">
+          <p className="font-semibold">{label}</p>
+          {payload.map((entry: any, index: number) => {
+            const caste = entry.dataKey;
+            return (
+              <div key={`tooltip-${index}`} className="flex items-center gap-2">
+                <span
+                  className="inline-block w-3 h-3 rounded-full"
+                  style={{
+                    backgroundColor: getColor(selectedMetric, caste) || "#ccc",
+                  }}
+                />
+                <span>{casteDisplayNames[caste]}</span>:
+                <span className="font-medium">
+                  {formatMetricValue(selectedMetric, entry.value)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return null;
+  };
+
 
   if (error) {
     return (
@@ -607,16 +629,7 @@ const App: React.FC = () => {
                   dataKey="name"
                   tick={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
                 />
-                <Tooltip
-                  formatter={(value: number, name: string) => [
-                    formatMetricValue(selectedMetric, value),
-                    casteDisplayNames[name as CasteKey], // Show full caste label like "Scheduled Castes"
-                  ]}
-                  wrapperStyle={{
-                    fontSize: window.innerWidth < 640 ? 15 : 15,
-                  }}
-                />
-
+                <Tooltip content={<CustomBarTooltip />} />
                 {["obc", "sc", "st", "oc"].map((caste) => (
                   <Bar key={caste} dataKey={caste} stackId="a">
                     {barData.map((entry, index) => (
