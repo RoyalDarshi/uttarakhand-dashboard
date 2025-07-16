@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Map, View } from "ol";
-import { Vector as VectorSource, OSM } from "ol/source";
+import { Vector as VectorSource } from "ol/source"; // Removed OSM import
 import { Vector as VectorLayer, Tile as TileLayer } from "ol/layer";
 import { GeoJSON } from "ol/format";
 import { Style, Fill, Stroke, Text } from "ol/style";
@@ -54,9 +54,7 @@ const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
     const newMap = new Map({
       target: mapRef.current,
       layers: [
-        new TileLayer({
-          source: new OSM(),
-        }),
+        // Removed the TileLayer with OSM source to remove the background world map
         initialVectorLayer, // Add the initial vector layer
       ],
       view: new View({
