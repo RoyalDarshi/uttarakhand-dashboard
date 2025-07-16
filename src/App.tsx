@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { MapContainer, GeoJSON } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet"; // Import Leaflet library
+import OpenLayersMap from "./components/OpenLayerMap";
 import {
   PieChart,
   Pie,
@@ -83,9 +81,6 @@ const App: React.FC = () => {
   const [selectedCaste, setSelectedCaste] = useState<CasteKey>("all");
   const [selectedSEC, setSelectedSEC] = useState<SECKey>("all");
   const [error, setError] = useState<string | null>(null);
-
-  // State to hold Leaflet markers for metric labels
-  const [metricMarkers, setMetricMarkers] = useState<L.Marker[]>([]);
 
   const officerNames = useMemo(() => {
     const names = [
@@ -311,40 +306,6 @@ const App: React.FC = () => {
     return data.sort((a, b) => b.value - a.value);
   }, [metricData, polygonData, selectedMetric, demographicKey]);
 
-  // Effect to manage and update metric labels on the map
-  useEffect(() => {
-    // Clear existing markers when dependencies change
-    metricMarkers.forEach(marker => marker.remove());
-    setMetricMarkers([]);
-
-    if (!polygonData || !metricData) return;
-
-    const newMarkers: L.Marker[] = [];
-    polygonData.features.forEach((feature) => {
-      const id = feature.properties["@id"];
-      const value = metricData[id]?.[demographicKey]?.[selectedMetric];
-
-      if (value !== undefined) {
-        // Create a temporary GeoJSON layer to get its bounds center
-        const tempLayer = L.geoJSON(feature);
-        const center = tempLayer.getBounds().getCenter();
-        
-        const formattedValue = formatMetricValue(selectedMetric, value);
-
-        // Create a custom div icon for the metric label
-        const metricIcon = L.divIcon({
-          className: 'metric-label', // Custom class for styling
-          html: `<div style="font-size: 10px; font-weight: bold; text-align: center; color: #333; background-color: rgba(255,255,255,0.7); padding: 2px 4px; border-radius: 3px; white-space: nowrap;">${formattedValue}</div>`,
-          iconAnchor: [0, 0], // Center the icon
-        });
-
-        const marker = L.marker(center, { icon: metricIcon });
-        newMarkers.push(marker);
-      }
-    });
-    setMetricMarkers(newMarkers);
-  }, [metricData, polygonData, selectedMetric, demographicKey]); // Re-run when these dependencies change
-
   if (error)
     return (
       <div className="text-red-500 p-2 text-xs sm:text-sm">Error: {error}</div>
@@ -358,7 +319,7 @@ const App: React.FC = () => {
     <div className="min-h-screen w-full flex flex-col bg-gray-100 text-gray-900">
       <header className="w-full flex flex-col sm:flex-row justify-between items-center px-2 sm:px-4 py-2 bg-white shadow-md gap-2">
         <h1 className="text-base sm:text-lg font-bold">
-          Uttar Pradesh Dashboard
+          Uttar Pradesh Dashboard (OpenLayers)
         </h1>
         <div className="flex items-center gap-x-2">
           <label
@@ -510,67 +471,16 @@ const App: React.FC = () => {
 
         <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-4 h-full">
           <div className="w-full sm:w-2/3 bg-white rounded-lg shadow-lg overflow-hidden">
-            <MapContainer
-              center={[27.197049, 80.52]}
-              zoom={7}
-              scrollWheelZoom={true}
-              zoomControl={false}
-              animate={true}
-              options={{
-                zoomAnimation: true,
-                easeLinearity: 0.4,
-                // Reduce inertiaDeceleration to make dragging stop faster
-                // A higher value (closer to 1) means more deceleration (stops faster)
-                // A lower value (closer to 0) means less deceleration (drags longer)
-                inertiaDeceleration: 25000, // Default is around 3000. Increased for faster stop.
-              }}
-              style={{ width: "100%", height: "100%", minHeight: "200px" }}
-            >
-              <GeoJSON
-                key={`${selectedMetric}-${demographicKey}`}
-                data={polygonData}
-                style={(feature) => {
-                  const id = feature?.properties["@id"];
-                  const value =
-                    metricData[id]?.[demographicKey]?.[selectedMetric] || 0;
-                  return {
-                    fillColor: getColor(selectedMetric, value),
-                    weight: 0.5,
-                    opacity: 1,
-                    color: "#000000",
-                    fillOpacity: 1,
-                  };
-                }}
-                onEachFeature={(feature, layer) => {
-                  const id = feature.properties["@id"];
-                  const name = feature.properties.name || "Unknown Area";
-                  const value =
-                    metricData[id]?.[demographicKey]?.[selectedMetric] || 0;
-                  const formattedValue = formatMetricValue(
-                    selectedMetric,
-                    value
-                  );
-                  const fullMetricName = getFullMetricName();
-                  const officer = officerNames[id] || "N/A";
-                  layer.bindTooltip(
-                    `<div style="background-color: #F3F4F6; color: #1F2937; padding: 6px; border-radius: 4px; font-size: 10px;">
-                      <strong>Area:</strong> ${name}<br/>
-                      <strong>${fullMetricName}:</strong> ${formattedValue}<br/>
-                      <strong>Officer:</strong> ${officer}
-                    </div>`,
-                    { sticky: true, offset: [10, 10], direction: "auto" }
-                  );
-                }}
-              />
-              {/* Render metric markers */}
-              {metricMarkers.map((marker, index) => (
-                // React-Leaflet does not have a direct component for L.Marker from state.
-                // We manage these markers imperatively in the useEffect hook.
-                // This comment is to acknowledge that this map function won't directly render L.Marker instances.
-                // The markers are added to the map instance directly within the useEffect.
-                <React.Fragment key={index}></React.Fragment>
-              ))}
-            </MapContainer>
+            <OpenLayersMap
+              geoJsonData={polygonData}
+              metricData={metricData}
+              selectedMetric={selectedMetric}
+              demographicKey={demographicKey}
+              getColor={getColor}
+              formatMetricValue={formatMetricValue}
+              getFullMetricName={getFullMetricName}
+              officerNames={officerNames}
+            />
           </div>
           <div className="w-full sm:w-1/2 flex flex-col gap-2 sm:gap-4 h-full">
             <div className="bg-white p-2 rounded-lg shadow flex-1 flex flex-col justify-center items-center min-h-[150px]">
