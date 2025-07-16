@@ -76,10 +76,10 @@ const newMap = new Map({
     mouseWheelZoom: false,
   }).extend([
     new MouseWheelZoom({
-      duration: 200,
-      timeout: 100,
-      useAnchor: true,
-      constrainResolution: false,
+        duration: 400,             // longer duration = smoother
+        timeout: 80,               // shorter delay between scroll events
+        useAnchor: true,           // zoom toward mouse pointer
+        constrainResolution: false // allows finer zoom increments
     }),
   ]),
 });
