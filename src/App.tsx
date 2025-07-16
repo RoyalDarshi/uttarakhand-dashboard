@@ -454,9 +454,9 @@ const App: React.FC = () => {
         )}
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           {/* Map */}
-          <div className="lg:col-span-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20">
+          <div className="col-span-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20">
             <OpenLayersMap
               geoJsonData={polygonData}
               metricData={metricData}
@@ -470,7 +470,7 @@ const App: React.FC = () => {
           </div>
 
           {/* Charts */}
-          <div className="space-y-2">
+          <div className="col-span-2 space-y-2">
             {/* Pie Chart */}
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-4">
               <h3 className="text-lg font-semibold text-gray-900 pl-4">Distribution Overview</h3>
@@ -496,19 +496,44 @@ const App: React.FC = () => {
 
             {/* Bar Chart */}
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-4">
-              <h3 className="text-lg font-semibold text-gray-900 pl-4">Top 10 Districts</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={barData} layout="horizontal">
-                  <XAxis type="number" tickFormatter={(value) => formatMetricValue(selectedMetric, value)} />
-                  <YAxis type="category" dataKey="name" width={80} />
-                  <Tooltip formatter={(value: number) => [formatMetricValue(selectedMetric, value), getMetricDisplayName(selectedMetric)]} />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                    {barData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={getColor(selectedMetric, entry.value)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <h2 className="text-lg font-semibold text-gray-900 pl-4 p-2">
+                Top 10 Districts
+              </h2>
+              <BarChart
+                layout="horizontal"
+                width={700}
+                height={window.innerWidth < 640 ? 250 : 280}
+                data={barData}
+                margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+              >
+                <YAxis
+                  type="number"
+                  tickFormatter={(value) =>
+                    formatMetricValue(selectedMetric, value)
+                  }
+                  tick={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
+                />
+                <XAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
+                />
+                <Tooltip
+                  formatter={(value: number) => [
+                    formatMetricValue(selectedMetric, value),
+                    getMetricDisplayName(selectedMetric),
+                  ]}
+                  wrapperStyle={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
+                />
+                <Bar dataKey="value">
+                  {barData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={getColor(selectedMetric, entry.value)}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
             </div>
           </div>
         </div>
