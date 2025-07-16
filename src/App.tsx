@@ -43,7 +43,7 @@ const genderDisplayNames: Record<GenderKey, string> = {
   other: "Other",
 };
 
-const secDisplayNames: Record<CasteKey, string> = {
+const casteDisplayNames: Record<CasteKey, string> = { // Renamed from secDisplayNames to casteDisplayNames for clarity
   all: "All Castes",
   obc: "Other Backward Classes",
   sc: "Scheduled Castes",
@@ -51,7 +51,7 @@ const secDisplayNames: Record<CasteKey, string> = {
   oc: "Open Category",
 };
 
-const incomeGroupDisplayNames: Record<SECKey, string> = {
+const secDisplayNames: Record<SECKey, string> = { // Renamed from incomeGroupDisplayNames to secDisplayNames for clarity
   all: "All SECs",
   bpl: "Below Poverty Line",
   low: "Low Income",
@@ -141,38 +141,32 @@ const App: React.FC = () => {
 
         const areas = filtered.features.map((f) => f.properties["@id"]);
         const dataMap: Record<string, AreaMetricData> = {};
-        const demographicKeys = [
-          "all_all",
-          "male_all",
-          "female_all",
-          "other_all",
-          "all_age0_18",
-          "all_age19_35",
-          "all_age36_50",
-          "all_age51_plus",
-          "male_age0_18",
-          "male_age19_35",
-          "male_age36_50",
-          "male_age51_plus",
-          "female_age0_18",
-          "female_age19_35",
-          "female_age36_50",
-          "female_age51_plus",
-          "other_age0_18",
-          "other_age19_35",
-          "other_age36_50",
-          "other_age51_plus",
-        ];
+        
+        // Define all possible keys for demographic data
+        const genders: GenderKey[] = ["all", "male", "female", "other"];
+        const ages: AgeKey[] = ["all", "age0_18", "age19_35", "age36_50", "age51_plus"];
+        const castes: CasteKey[] = ["all", "obc", "sc", "st", "oc"];
+        const secs: SECKey[] = ["all", "bpl", "low", "middle", "high", "affluent"];
+
         areas.forEach((areaId) => {
           const areaData: AreaMetricData = {};
           const getRandom = (min: number, max: number) =>
             Math.random() * (max - min) + min;
-          demographicKeys.forEach((key) => {
-            areaData[key] = {
-              literacy: Number(getRandom(60, 95).toFixed(1)),
-              income: Math.floor(getRandom(20000, 100000)),
-              population: Math.floor(getRandom(5000, 1000000)),
-            };
+
+          // Generate data for all combinations of gender, age, caste, and SEC
+          genders.forEach((gender) => {
+            ages.forEach((age) => {
+              castes.forEach((caste) => {
+                secs.forEach((sec) => {
+                  const key = `${gender}_${age}_${caste}_${sec}`;
+                  areaData[key] = {
+                    literacy: Number(getRandom(60, 95).toFixed(1)),
+                    income: Math.floor(getRandom(20000, 100000)),
+                    population: Math.floor(getRandom(5000, 1000000)),
+                  };
+                });
+              });
+            });
           });
           dataMap[areaId] = areaData;
         });
@@ -184,15 +178,19 @@ const App: React.FC = () => {
       });
   }, []);
 
+  // Updated demographicKey to include caste and SEC
   const demographicKey = useMemo(() => {
-    return `${selectedGender}_${selectedAge}` as string;
+    return `${selectedGender}_${selectedAge}_${selectedCaste}_${selectedSEC}` as string;
   }, [selectedGender, selectedAge, selectedCaste, selectedSEC]);
 
   const kpis = useMemo(() => {
     if (!metricData) return null;
     const values = Object.values(metricData).map(
-      (area) => area[demographicKey][selectedMetric]
-    );
+      (area) => area[demographicKey]?.[selectedMetric] // Added optional chaining
+    ).filter(value => value !== undefined); // Filter out undefined values
+    
+    if (values.length === 0) return { average: 0, min: 0, max: 0 }; // Handle case where no data is found
+
     let average = values.reduce((sum, val) => sum + val, 0) / values.length;
     average = Number(average.toFixed(2));
     if (selectedMetric === "population") average = Math.floor(average);
@@ -240,8 +238,8 @@ const App: React.FC = () => {
     const metricName = getMetricDisplayName(selectedMetric);
     const genderName = genderDisplayNames[selectedGender];
     const ageName = ageDisplayNames[selectedAge];
-    const casteName = secDisplayNames[selectedCaste];
-    const secName = incomeGroupDisplayNames[selectedSEC];
+    const casteName = casteDisplayNames[selectedCaste]; // Used casteDisplayNames
+    const secName = secDisplayNames[selectedSEC]; // Used secDisplayNames
     let demographicName = "Overall";
     const filters = [];
     if (selectedGender !== "all") filters.push(genderName);
@@ -414,7 +412,7 @@ const App: React.FC = () => {
               onChange={(e) => setSelectedCaste(e.target.value as CasteKey)}
               className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
             >
-              {Object.entries(secDisplayNames).map(([key, display]) => (
+              {Object.entries(casteDisplayNames).map(([key, display]) => (
                 <option key={key} value={key}>
                   {display}
                 </option>
@@ -434,7 +432,7 @@ const App: React.FC = () => {
               onChange={(e) => setSelectedSEC(e.target.value as SECKey)}
               className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
             >
-              {Object.entries(incomeGroupDisplayNames).map(([key, display]) => (
+              {Object.entries(secDisplayNames).map(([key, display]) => (
                 <option key={key} value={key}>
                   {display}
                 </option>
@@ -479,6 +477,17 @@ const App: React.FC = () => {
               zoom={7}
               scrollWheelZoom={true}
               zoomControl={false}
+              // Explicitly enable zoom animation and adjust easeLinearity for smoother feel
+              // zoomAnimation is true by default, but explicitly setting it can ensure it.
+              // easeLinearity controls the "elasticity" of the animation.
+              // duration (in milliseconds) can be set via animate: { duration: 0.5 }
+              // but MapContainer doesn't directly expose duration.
+              // The default duration is usually fine.
+              animate={true}
+              options={{
+                zoomAnimation: true,
+                easeLinearity: 0.5, // Adjust this value (0 to 1) for different animation feel
+              }}
               style={{ width: "100%", height: "100%", minHeight: "200px" }}
             >
               <GeoJSON
