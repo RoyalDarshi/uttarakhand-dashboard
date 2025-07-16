@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Map, View } from 'ol';
-import { Vector as VectorSource } from 'ol/source'; // Removed OSM import as it's no longer used
-import { Vector as VectorLayer } from 'ol/layer'; // Removed Tile as TileLayer import
-import { GeoJSON } from 'ol/format';
-import { Style, Fill, Stroke, Text } from 'ol/style';
-import { fromLonLat } from 'ol/proj';
-import { Overlay } from 'ol';
-import { Feature } from 'ol';
-import { Point } from 'ol/geom';
-import 'ol/ol.css';
+import React, { useEffect, useRef, useState } from "react";
+import { Map, View } from "ol";
+import { Vector as VectorSource, OSM } from "ol/source";
+import { Vector as VectorLayer, Tile as TileLayer } from "ol/layer";
+import { GeoJSON } from "ol/format";
+import { Style, Fill, Stroke, Text } from "ol/style";
+import { fromLonLat } from "ol/proj";
+import { Overlay } from "ol";
+import { Feature } from "ol";
+import { Point } from "ol/geom";
+import "ol/ol.css";
 
 interface OpenLayersMapProps {
   geoJsonData: any;
@@ -34,44 +34,30 @@ const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<Map | null>(null);
   const [vectorSource, setVectorSource] = useState<VectorSource | null>(null);
-  // Removed labelSource as labels are no longer needed
+  const [vectorLayer, setVectorLayer] = useState<VectorLayer | null>(null); // Store vectorLayer in state
   const [tooltip, setTooltip] = useState<Overlay | null>(null);
 
-  // Initialize map
+  // Initialize map and layers
   useEffect(() => {
     if (!mapRef.current) return;
 
     const vectorSrc = new VectorSource();
-    // Removed labelSrc initialization
     setVectorSource(vectorSrc);
-    // Removed setLabelSource
 
-    const vectorLayer = new VectorLayer({
+    // Create the vector layer initially
+    const initialVectorLayer = new VectorLayer({
       source: vectorSrc,
-      style: (feature) => {
-        const properties = feature.getProperties();
-        const id = properties['@id'];
-        const value = metricData?.[id]?.[demographicKey]?.[selectedMetric] || 0;
-        const fillColor = getColor(selectedMetric, value);
-        
-        return new Style({
-          fill: new Fill({
-            color: fillColor,
-          }),
-          stroke: new Stroke({
-            color: '#000000',
-            width: 0.5,
-          }),
-        });
-      },
+      // Style will be set dynamically in a separate useEffect
     });
+    setVectorLayer(initialVectorLayer);
 
-    // Removed labelLayer
     const newMap = new Map({
       target: mapRef.current,
       layers: [
-        // Removed TileLayer for OSM background map
-        vectorLayer,
+        new TileLayer({
+          source: new OSM(),
+        }),
+        initialVectorLayer, // Add the initial vector layer
       ],
       view: new View({
         center: fromLonLat([80.52, 27.197049]),
@@ -80,57 +66,55 @@ const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
     });
 
     // Create tooltip overlay
-    const tooltipElement = document.createElement('div');
-    tooltipElement.className = 'ol-tooltip';
+    const tooltipElement = document.createElement("div");
+    tooltipElement.className = "ol-tooltip";
     tooltipElement.style.cssText = `
       position: absolute;
-      background-color: rgba(31, 41, 55, 0.95); /* Slightly less transparent background */
-      color: #F9FAFB; /* Light text color */
-      padding: 10px 15px; /* Increased padding for more breathing room */
-      border-radius: 8px; /* More rounded corners */
-      font-size: 13px; /* Slightly larger font */
-      font-family: 'Inter', sans-serif; /* Specify a modern font */
+      background-color: #F3F4F6;
+      color: #1F2937;
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 10px;
       pointer-events: none;
       z-index: 1000;
-      max-width: 350px; /* Increased max-width for the tooltip */
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* More pronounced shadow */
-      line-height: 1.6; /* Improved readability */
-      border: 1px solid rgba(255, 255, 255, 0.15); /* Subtle light border */
-      white-space: nowrap; /* Prevent text from wrapping */
+      max-width: 200px;
     `;
 
     const tooltipOverlay = new Overlay({
       element: tooltipElement,
       offset: [10, 10],
-      positioning: 'bottom-left',
+      positioning: "bottom-left",
     });
 
     newMap.addOverlay(tooltipOverlay);
     setTooltip(tooltipOverlay);
 
     // Add hover functionality
-    newMap.on('pointermove', (evt) => {
-      const feature = newMap.forEachFeatureAtPixel(evt.pixel, (feature) => feature);
-      
-      if (feature && feature.getGeometry()?.getType() !== 'Point') {
+    newMap.on("pointermove", (evt) => {
+      const feature = newMap.forEachFeatureAtPixel(
+        evt.pixel,
+        (feature) => feature
+      );
+
+      if (feature && feature.getGeometry()?.getType() !== "Point") {
         const properties = feature.getProperties();
-        const id = properties['@id'];
-        const name = properties.name || 'Unknown Area';
+        const id = properties["@id"];
+        const name = properties.name || "Unknown Area";
+        // Access current metricData, demographicKey, selectedMetric for tooltip
         const value = metricData?.[id]?.[demographicKey]?.[selectedMetric] || 0;
         const formattedValue = formatMetricValue(selectedMetric, value);
         const fullMetricName = getFullMetricName();
-        const officer = officerNames[id] || 'N/A';
+        const officer = officerNames[id] || "N/A";
 
-        // Modified to display content side-by-side
         tooltipElement.innerHTML = `
-          <strong>Area:</strong> ${name} &nbsp;<br />
-          <strong>${fullMetricName}:</strong> ${formattedValue} <br /> 
+          <strong>Area:</strong> ${name}<br/>
+          <strong>${fullMetricName}:</strong> ${formattedValue}<br/>
           <strong>Officer:</strong> ${officer}
         `;
         tooltipOverlay.setPosition(evt.coordinate);
-        tooltipElement.style.display = 'block';
+        tooltipElement.style.display = "block";
       } else {
-        tooltipElement.style.display = 'none';
+        tooltipElement.style.display = "none";
       }
     });
 
@@ -139,37 +123,56 @@ const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
     return () => {
       newMap.setTarget(undefined);
     };
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
-  // Update map data when props change
+  // Update map data (features) when geoJsonData or metricData changes
   useEffect(() => {
-    if (!map || !vectorSource || !geoJsonData || !metricData) return; // Removed labelSource from dependencies
+    if (!map || !vectorSource || !geoJsonData || !metricData) return;
 
     // Clear existing features
     vectorSource.clear();
-    // Removed labelSource.clear();
 
     // Parse GeoJSON data
     const format = new GeoJSON({
-      featureProjection: 'EPSG:3857',
+      featureProjection: "EPSG:3857",
     });
 
     const features = format.readFeatures(geoJsonData);
     vectorSource.addFeatures(features);
 
-    // Removed "Add metric labels" section
-
-    // Refresh the map
+    // Refresh the map size (important if container size changes)
     map.updateSize();
-  }, [map, vectorSource, geoJsonData, metricData, selectedMetric, demographicKey]); // Removed labelSource from dependencies
+  }, [map, vectorSource, geoJsonData, metricData]);
+
+  // Update vector layer style when selectedMetric, demographicKey, metricData, or getColor changes
+  useEffect(() => {
+    if (!vectorLayer || !metricData) return;
+
+    vectorLayer.setStyle((feature) => {
+      const properties = feature.getProperties();
+      const id = properties["@id"];
+      const value = metricData?.[id]?.[demographicKey]?.[selectedMetric] || 0;
+      const fillColor = getColor(selectedMetric, value);
+
+      return new Style({
+        fill: new Fill({
+          color: fillColor,
+        }),
+        stroke: new Stroke({
+          color: "#000000",
+          width: 0.5,
+        }),
+      });
+    });
+  }, [vectorLayer, metricData, selectedMetric, demographicKey, getColor]); // Dependencies for style update
 
   return (
-    <div 
-      ref={mapRef} 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        minHeight: '200px' 
+    <div
+      ref={mapRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        minHeight: "200px",
       }}
     />
   );
