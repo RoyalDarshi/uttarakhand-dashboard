@@ -96,6 +96,95 @@ const App: React.FC = () => {
     return officerMap;
   }, [polygonData]);
 
+  const generateMockData = (areas: any): Record<string, AreaMetricData> => {
+    const dataMap: Record<string, AreaMetricData> = {};
+
+    const genders: GenderKey[] = ["all", "male", "female", "other"];
+    const ages: AgeKey[] = [
+      "all",
+      "age0_18",
+      "age19_35",
+      "age36_50",
+      "age51_plus",
+    ];
+    const castes: CasteKey[] = ["all", "obc", "sc", "st", "oc"];
+    const secs: SECKey[] = ["all", "bpl", "low", "middle", "high", "affluent"];
+
+    const baseCasteModifiers: Record<CasteKey, number> = {
+      all: 1,
+      obc: 0.95,
+      sc: 0.9,
+      st: 0.85,
+      oc: 1.05,
+    };
+
+    const secModifiers: Record<SECKey, number> = {
+      all: 1,
+      bpl: 0.7,
+      low: 0.85,
+      middle: 1,
+      high: 1.1,
+      affluent: 1.2,
+    };
+
+    const genderModifiers: Record<GenderKey, number> = {
+      all: 1,
+      male: 1.0,
+      female: 0.98,
+      other: 0.92,
+    };
+
+    const ageModifiers: Record<AgeKey, number> = {
+      all: 1,
+      age0_18: 0.5,
+      age19_35: 1,
+      age36_50: 1.2,
+      age51_plus: 0.8,
+    };
+
+    areas.forEach((areaId, index) => {
+      const areaData: AreaMetricData = {};
+      const regionalBias = 0.9 + Math.random() * 0.2; // regional factor between 0.9 and 1.1
+
+      genders.forEach((gender) => {
+        ages.forEach((age) => {
+          castes.forEach((caste) => {
+            secs.forEach((sec) => {
+              const key = `${gender}_${age}_${caste}_${sec}`;
+
+              const casteMod = baseCasteModifiers[caste];
+              const secMod = secModifiers[sec];
+              const genderMod = genderModifiers[gender];
+              const ageMod = ageModifiers[age];
+
+              // Derived weight to create variation
+              const weight =
+                casteMod * secMod * genderMod * ageMod * regionalBias;
+
+              // Generate values with realistic baseline and variation
+              const literacy = Number(
+                (55 + weight * 35 + Math.random() * 5).toFixed(1)
+              ); // Max ~95
+              const income = Math.floor(
+                weight * (20000 + Math.random() * 80000)
+              );
+              const population = Math.floor(
+                weight * (2000 + Math.random() * 800000)
+              );
+
+              areaData[key] = { literacy, income, population };
+            });
+          });
+        });
+      });
+
+      dataMap[areaId] = areaData;
+    });
+
+    return dataMap;
+  };
+
+
   useEffect(() => {
     fetch("/UPBoundaries.geojson")
       .then((res) => {
