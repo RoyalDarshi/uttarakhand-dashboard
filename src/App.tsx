@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { MapContainer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import L from "leaflet"; // Import Leaflet library
 import {
   PieChart,
   Pie,
@@ -43,7 +44,7 @@ const genderDisplayNames: Record<GenderKey, string> = {
   other: "Other",
 };
 
-const casteDisplayNames: Record<CasteKey, string> = { // Renamed from secDisplayNames to casteDisplayNames for clarity
+const casteDisplayNames: Record<CasteKey, string> = {
   all: "All Castes",
   obc: "Other Backward Classes",
   sc: "Scheduled Castes",
@@ -51,7 +52,7 @@ const casteDisplayNames: Record<CasteKey, string> = { // Renamed from secDisplay
   oc: "Open Category",
 };
 
-const secDisplayNames: Record<SECKey, string> = { // Renamed from incomeGroupDisplayNames to secDisplayNames for clarity
+const secDisplayNames: Record<SECKey, string> = {
   all: "All SECs",
   bpl: "Below Poverty Line",
   low: "Low Income",
@@ -82,6 +83,9 @@ const App: React.FC = () => {
   const [selectedCaste, setSelectedCaste] = useState<CasteKey>("all");
   const [selectedSEC, setSelectedSEC] = useState<SECKey>("all");
   const [error, setError] = useState<string | null>(null);
+
+  // State to hold Leaflet markers for metric labels
+  const [metricMarkers, setMetricMarkers] = useState<L.Marker[]>([]);
 
   const officerNames = useMemo(() => {
     const names = [
@@ -186,10 +190,10 @@ const App: React.FC = () => {
   const kpis = useMemo(() => {
     if (!metricData) return null;
     const values = Object.values(metricData).map(
-      (area) => area[demographicKey]?.[selectedMetric] // Added optional chaining
-    ).filter(value => value !== undefined); // Filter out undefined values
+      (area) => area[demographicKey]?.[selectedMetric]
+    ).filter(value => value !== undefined);
     
-    if (values.length === 0) return { average: 0, min: 0, max: 0 }; // Handle case where no data is found
+    if (values.length === 0) return { average: 0, min: 0, max: 0 };
 
     let average = values.reduce((sum, val) => sum + val, 0) / values.length;
     average = Number(average.toFixed(2));
@@ -238,8 +242,8 @@ const App: React.FC = () => {
     const metricName = getMetricDisplayName(selectedMetric);
     const genderName = genderDisplayNames[selectedGender];
     const ageName = ageDisplayNames[selectedAge];
-    const casteName = casteDisplayNames[selectedCaste]; // Used casteDisplayNames
-    const secName = secDisplayNames[selectedSEC]; // Used secDisplayNames
+    const casteName = casteDisplayNames[selectedCaste];
+    const secName = secDisplayNames[selectedSEC];
     let demographicName = "Overall";
     const filters = [];
     if (selectedGender !== "all") filters.push(genderName);
@@ -306,6 +310,40 @@ const App: React.FC = () => {
       .filter((item) => item !== null) as { name: string; value: number }[];
     return data.sort((a, b) => b.value - a.value);
   }, [metricData, polygonData, selectedMetric, demographicKey]);
+
+  // Effect to manage and update metric labels on the map
+  useEffect(() => {
+    // Clear existing markers when dependencies change
+    metricMarkers.forEach(marker => marker.remove());
+    setMetricMarkers([]);
+
+    if (!polygonData || !metricData) return;
+
+    const newMarkers: L.Marker[] = [];
+    polygonData.features.forEach((feature) => {
+      const id = feature.properties["@id"];
+      const value = metricData[id]?.[demographicKey]?.[selectedMetric];
+
+      if (value !== undefined) {
+        // Create a temporary GeoJSON layer to get its bounds center
+        const tempLayer = L.geoJSON(feature);
+        const center = tempLayer.getBounds().getCenter();
+        
+        const formattedValue = formatMetricValue(selectedMetric, value);
+
+        // Create a custom div icon for the metric label
+        const metricIcon = L.divIcon({
+          className: 'metric-label', // Custom class for styling
+          html: `<div style="font-size: 10px; font-weight: bold; text-align: center; color: #333; background-color: rgba(255,255,255,0.7); padding: 2px 4px; border-radius: 3px; white-space: nowrap;">${formattedValue}</div>`,
+          iconAnchor: [0, 0], // Center the icon
+        });
+
+        const marker = L.marker(center, { icon: metricIcon });
+        newMarkers.push(marker);
+      }
+    });
+    setMetricMarkers(newMarkers);
+  }, [metricData, polygonData, selectedMetric, demographicKey]); // Re-run when these dependencies change
 
   if (error)
     return (
@@ -477,16 +515,14 @@ const App: React.FC = () => {
               zoom={7}
               scrollWheelZoom={true}
               zoomControl={false}
-              // Explicitly enable zoom animation and adjust easeLinearity for smoother feel
-              // zoomAnimation is true by default, but explicitly setting it can ensure it.
-              // easeLinearity controls the "elasticity" of the animation.
-              // duration (in milliseconds) can be set via animate: { duration: 0.5 }
-              // but MapContainer doesn't directly expose duration.
-              // The default duration is usually fine.
               animate={true}
               options={{
                 zoomAnimation: true,
-                easeLinearity: 0.5, // Adjust this value (0 to 1) for different animation feel
+                easeLinearity: 0.4,
+                // Reduce inertiaDeceleration to make dragging stop faster
+                // A higher value (closer to 1) means more deceleration (stops faster)
+                // A lower value (closer to 0) means less deceleration (drags longer)
+                inertiaDeceleration: 25000, // Default is around 3000. Increased for faster stop.
               }}
               style={{ width: "100%", height: "100%", minHeight: "200px" }}
             >
@@ -526,6 +562,14 @@ const App: React.FC = () => {
                   );
                 }}
               />
+              {/* Render metric markers */}
+              {metricMarkers.map((marker, index) => (
+                // React-Leaflet does not have a direct component for L.Marker from state.
+                // We manage these markers imperatively in the useEffect hook.
+                // This comment is to acknowledge that this map function won't directly render L.Marker instances.
+                // The markers are added to the map instance directly within the useEffect.
+                <React.Fragment key={index}></React.Fragment>
+              ))}
             </MapContainer>
           </div>
           <div className="w-full sm:w-1/2 flex flex-col gap-2 sm:gap-4 h-full">
