@@ -8,6 +8,10 @@ import { fromLonLat } from "ol/proj";
 import { Overlay } from "ol";
 import { Feature } from "ol";
 import { Point } from "ol/geom";
+import {
+  defaults as defaultInteractions,
+  MouseWheelZoom,
+} from "ol/interaction";
 import "ol/ol.css";
 
 interface OpenLayersMapProps {
@@ -51,17 +55,28 @@ const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
     });
     setVectorLayer(initialVectorLayer);
 
-    const newMap = new Map({
-      target: mapRef.current,
-      layers: [
-        // Removed the TileLayer with OSM source to remove the background world map
-        initialVectorLayer, // Add the initial vector layer
-      ],
-      view: new View({
-        center: fromLonLat([80.52, 27.197049]),
-        zoom: 7,
-      }),
-    });
+
+const newMap = new Map({
+  target: mapRef.current,
+  layers: [initialVectorLayer],
+  view: new View({
+    center: fromLonLat([80.52, 27.197049]),
+    zoom: 7,
+    minZoom: 5,
+    maxZoom: 18,
+  }),
+  interactions: defaultInteractions({
+    mouseWheelZoom: false, // disable default to prevent double zoom
+  }).extend([
+    new MouseWheelZoom({
+      duration: 200,        // smooth animation
+      timeout: 100,         // throttle wheel events
+      useAnchor: true,      // zoom towards cursor
+      constrainResolution: false, // allow fluid zooming (better for touchpads)
+    }),
+  ]),
+});
+
 
     // Create tooltip overlay
     const tooltipElement = document.createElement("div");
