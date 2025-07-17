@@ -420,6 +420,77 @@ const App: React.FC = () => {
     ],
   };
 
+  // Add this function inside the App component
+  const computeDemographicBreakdowns = (areaId: string) => {
+    if (!metricData) return null;
+
+    const areaData = metricData[areaId];
+    if (!areaData) return null;
+
+    // Initialize breakdown objects
+    const genderBreakdown = { male: 0, female: 0, other: 0 };
+    const ageBreakdown = {
+      age0_18: 0,
+      age19_35: 0,
+      age36_50: 0,
+      age51_plus: 0,
+    };
+    const casteBreakdown = { obc: 0, sc: 0, st: 0, oc: 0 };
+    const secBreakdown = { bpl: 0, low: 0, middle: 0, high: 0, affluent: 0 };
+
+    let totalPopulation = 0;
+
+    // Aggregate data from all combinations
+    Object.keys(areaData).forEach((key) => {
+      const [gender, age, caste, sec] = key.split("_") as [
+        GenderKey,
+        AgeKey,
+        CasteKey,
+        SECKey
+      ];
+      const value = areaData[key].population;
+
+      // Skip "all" categories
+      if (gender !== "all") genderBreakdown[gender] += value;
+      if (age !== "all") ageBreakdown[age] += value;
+      if (caste !== "all") casteBreakdown[caste] += value;
+      if (sec !== "all") secBreakdown[sec] += value;
+
+      totalPopulation += value;
+    });
+
+    // Convert to percentages
+    const toPercentage = (value: number) =>
+      ((value / totalPopulation) * 100).toFixed(1) + "%";
+
+    return {
+      gender: {
+        male: toPercentage(genderBreakdown.male),
+        female: toPercentage(genderBreakdown.female),
+        other: toPercentage(genderBreakdown.other),
+      },
+      age: {
+        age0_18: toPercentage(ageBreakdown.age0_18),
+        age19_35: toPercentage(ageBreakdown.age19_35),
+        age36_50: toPercentage(ageBreakdown.age36_50),
+        age51_plus: toPercentage(ageBreakdown.age51_plus),
+      },
+      caste: {
+        obc: toPercentage(casteBreakdown.obc),
+        sc: toPercentage(casteBreakdown.sc),
+        st: toPercentage(casteBreakdown.st),
+        oc: toPercentage(casteBreakdown.oc),
+      },
+      sec: {
+        bpl: toPercentage(secBreakdown.bpl),
+        low: toPercentage(secBreakdown.low),
+        middle: toPercentage(secBreakdown.middle),
+        high: toPercentage(secBreakdown.high),
+        affluent: toPercentage(secBreakdown.affluent),
+      },
+    };
+  };
+
   const pieData = useMemo(() => {
     if (!metricData || !polygonData) return [];
     const currentBrackets = brackets[selectedMetric];
@@ -1000,96 +1071,180 @@ const App: React.FC = () => {
                   <h4 className="font-medium text-sm text-gray-700 mb-2">
                     Gender Distribution
                   </h4>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Male</span>
-                      <span className="font-medium">52.3%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full"
-                        style={{ width: "52.3%" }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="space-y-1 mt-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Female</span>
-                      <span className="font-medium">47.1%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-pink-500 h-2 rounded-full"
-                        style={{ width: "47.1%" }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="space-y-1 mt-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Other</span>
-                      <span className="font-medium">0.6%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-purple-500 h-2 rounded-full"
-                        style={{ width: "0.6%" }}
-                      ></div>
-                    </div>
-                  </div>
+
+                  {computeDemographicBreakdowns(selectedAreaDetails.id)
+                    ?.gender && (
+                    <>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Male</span>
+                          <span className="font-medium">
+                            {
+                              computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.gender.male
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{
+                              width: computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.gender.male,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Female</span>
+                          <span className="font-medium">
+                            {
+                              computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.gender.female
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-pink-500 h-2 rounded-full"
+                            style={{
+                              width: computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.gender.female,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Others</span>
+                          <span className="font-medium">
+                            {
+                              computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.gender.other
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-purple-500 h-2 rounded-full"
+                            style={{
+                              width: computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.gender.other,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div>
                   <h4 className="font-medium text-sm text-gray-700 mb-2">
                     Age Distribution
                   </h4>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>0-18</span>
-                      <span className="font-medium">32.1%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full"
-                        style={{ width: "32.1%" }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="space-y-1 mt-2">
-                    <div className="flex justify-between text-sm">
-                      <span>19-35</span>
-                      <span className="font-medium">28.7%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{ width: "28.7%" }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="space-y-1 mt-2">
-                    <div className="flex justify-between text-sm">
-                      <span>36-50</span>
-                      <span className="font-medium">22.4%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-amber-500 h-2 rounded-full"
-                        style={{ width: "22.4%" }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="space-y-1 mt-2">
-                    <div className="flex justify-between text-sm">
-                      <span>51+</span>
-                      <span className="font-medium">16.8%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-red-500 h-2 rounded-full"
-                        style={{ width: "16.8%" }}
-                      ></div>
-                    </div>
-                  </div>
+
+                  {computeDemographicBreakdowns(selectedAreaDetails.id)
+                    ?.age && (
+                    <>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>0-18</span>
+                          <span className="font-medium">
+                            {
+                              computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age0_18
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full"
+                            style={{
+                              width: computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age0_18,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>19-35</span>
+                          <span className="font-medium">
+                            {
+                              computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age19_35
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{
+                              width: computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age19_35,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>36-50</span>
+                          <span className="font-medium">
+                            {
+                              computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age36_50
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-amber-500 h-2 rounded-full"
+                            style={{
+                              width: computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age36_50,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>51+</span>
+                          <span className="font-medium">
+                            {
+                              computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age51_plus
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-red-500 h-2 rounded-full"
+                            style={{
+                              width: computeDemographicBreakdowns(
+                                selectedAreaDetails.id
+                              )?.age.age51_plus,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Repeat for other age groups */}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1107,22 +1262,36 @@ const App: React.FC = () => {
                     Caste Distribution
                   </h4>
                   <div className="space-y-2">
-                    {Object.entries({
-                      obc: "OBC (42%)",
-                      sc: "SC (21%)",
-                      st: "ST (12%)",
-                      oc: "OC (25%)",
-                    }).map(([caste, label]) => (
-                      <div key={caste} className="flex items-center">
-                        <div
-                          className="w-3 h-3 rounded-full mr-2"
-                          style={{
-                            backgroundColor: getColor("literacy", caste),
-                          }}
-                        ></div>
-                        <span className="text-sm">{label}</span>
-                      </div>
-                    ))}
+                    {computeDemographicBreakdowns(selectedAreaDetails.id)
+                      ?.caste &&
+                      Object.entries({
+                        obc: `OBC (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.caste.obc
+                        })`,
+                        sc: `SC (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.caste.sc
+                        })`,
+                        st: `ST (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.caste.st
+                        })`,
+                        oc: `OC (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.caste.oc
+                        })`,
+                      }).map(([caste, label]) => (
+                        <div key={caste} className="flex items-center">
+                          <div
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{
+                              backgroundColor: getColor("literacy", caste),
+                            }}
+                          ></div>
+                          <span className="text-sm">{label}</span>
+                        </div>
+                      ))}
                   </div>
                 </div>
 
@@ -1131,21 +1300,38 @@ const App: React.FC = () => {
                     SEC Distribution
                   </h4>
                   <div className="space-y-2">
-                    {Object.entries({
-                      bpl: "BPL (18%)",
-                      low: "Low (25%)",
-                      middle: "Middle (32%)",
-                      high: "High (18%)",
-                      affluent: "Affluent (7%)",
-                    }).map(([sec, label]) => (
-                      <div key={sec} className="flex items-center">
-                        <div
-                          className="w-3 h-3 rounded-full mr-2"
-                          style={{ backgroundColor: getColor("income", sec) }}
-                        ></div>
-                        <span className="text-sm">{label}</span>
-                      </div>
-                    ))}
+                    {computeDemographicBreakdowns(selectedAreaDetails.id)
+                      ?.sec &&
+                      Object.entries({
+                        bpl: `BPL (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.sec.bpl
+                        })`,
+                        low: `Low (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.sec.low
+                        })`,
+                        middle: `Middle (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.sec.middle
+                        })`,
+                        high: `High (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.sec.high
+                        })`,
+                        affluent: `Affluent (${
+                          computeDemographicBreakdowns(selectedAreaDetails.id)
+                            ?.sec.affluent
+                        })`,
+                      }).map(([sec, label]) => (
+                        <div key={sec} className="flex items-center">
+                          <div
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{ backgroundColor: getColor("income", sec) }}
+                          ></div>
+                          <span className="text-sm">{label}</span>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>
