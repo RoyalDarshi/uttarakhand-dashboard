@@ -902,7 +902,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Demographic Breakdown */}
-            <div className="bg-white rounded-lg border shadow-sm p-4">
+            {/* <div className="bg-white rounded-lg border shadow-sm p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <Users className="w-5 h-5 text-indigo-600" />
                 Demographic Breakdown
@@ -1005,7 +1005,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Caste and SEC Distribution */}
             <div className="bg-white rounded-lg border shadow-sm p-4">
@@ -1136,7 +1136,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Insights and Recommendations */}
-            <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
+            {/* <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-amber-600" />
                 Insights & Recommendations
@@ -1178,7 +1178,7 @@ const App: React.FC = () => {
                   Download Full Report
                 </button>
               </div>
-            </div>
+            </div> */}
           </div>
         )}
       </div>
