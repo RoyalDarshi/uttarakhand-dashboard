@@ -713,9 +713,9 @@ const App: React.FC = () => {
 
           {/* Charts */}
           <div
-            className={`col-span-${
-              selectedAreaDetails ? "1" : "2"
-            } space-y-2 ${selectedAreaDetails ? "block" : "hidden"} lg:block`}
+            className={`col-span-${selectedAreaDetails ? "1" : "2"} space-y-2 ${
+              selectedAreaDetails ? "block" : "hidden"
+            } lg:block`}
           >
             {/* Pie Chart */}
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-4">
@@ -785,14 +785,19 @@ const App: React.FC = () => {
 
       {/* Area Details Popup */}
       <div
-        className={`fixed right-0 top-0 h-full w-80 bg-white/95 backdrop-blur-lg shadow-2xl z-50 transform transition-transform duration-300
-        ${selectedAreaDetails ? "translate-x-0" : "translate-x-full"}
-        flex flex-col p-6 border-l border-white/20`}
+        className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-white/95 backdrop-blur-lg shadow-2xl z-50 transform transition-transform duration-300
+  ${selectedAreaDetails ? "translate-x-0" : "translate-x-full"}
+  flex flex-col p-2 px-4 border-l border-white/20 overflow-y-auto`}
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {selectedAreaDetails?.name || "Area Details"}
-          </h2>
+        <div className="flex justify-between items-center mb-1">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              {selectedAreaDetails?.name || "Area Details"}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {selectedAreaDetails?.id || "Area ID: N/A"}
+            </p>
+          </div>
           <button
             onClick={() => setSelectedAreaDetails(null)}
             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"
@@ -803,45 +808,377 @@ const App: React.FC = () => {
         </div>
 
         {selectedAreaDetails && (
-          <div className="space-y-4 text-gray-700 overflow-y-auto">
-            <p>
-              <strong className="font-semibold">Officer In Charge:</strong>{" "}
-              {selectedAreaDetails.officer}
-            </p>
-            <h3 className="text-lg font-semibold text-gray-800 mt-4 border-b pb-2 border-gray-200">
-              Demographic Metrics
-            </h3>
-            {selectedAreaDetails.metrics ? (
-              <div className="space-y-2">
-                <p>
-                  <strong className="font-semibold">Literacy Rate:</strong>{" "}
-                  {formatMetricValue(
-                    "literacy",
-                    selectedAreaDetails.metrics.literacy
-                  )}
-                </p>
-                <p>
-                  <strong className="font-semibold">Average Income:</strong>{" "}
-                  {formatMetricValue(
-                    "income",
-                    selectedAreaDetails.metrics.income
-                  )}
-                </p>
-                <p>
-                  <strong className="font-semibold">Population:</strong>{" "}
-                  {formatMetricValue(
-                    "population",
-                    selectedAreaDetails.metrics.population
-                  )}
-                </p>
-              </div>
-            ) : (
-              <p className="text-gray-500">
-                No detailed metric data available for the current demographic
-                selection.
+          <div className="space-y-2 text-gray-700">
+            {/* Officer and Basic Info */}
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-600" />
+                <strong className="font-semibold">
+                  Officer In Charge:
+                </strong>{" "}
+                <span className="font-medium">
+                  {selectedAreaDetails.officer}
+                </span>
               </p>
-            )}
-            {/* You can add more details here if available in selectedAreaDetails */}
+              <p className="flex items-center gap-2 mt-2">
+                <MapPin className="w-4 h-4 text-blue-600" />
+                <strong className="font-semibold">Region Type:</strong>{" "}
+                <span className="font-medium">Urban District</span>
+              </p>
+            </div>
+
+            {/* Key Metrics Card */}
+            <div className="bg-white rounded-lg border shadow-sm p-2">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-indigo-600" />
+                Key Metrics Overview
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-indigo-50 p-3 rounded-lg">
+                  <p className="text-sm text-indigo-700">Literacy Rate</p>
+                  <p className="text-xl font-bold">
+                    {selectedAreaDetails.metrics
+                      ? formatMetricValue(
+                          "literacy",
+                          selectedAreaDetails.metrics.literacy
+                        )
+                      : "N/A"}
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <span className="text-xs text-green-600">+2.3%</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      vs last year
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <p className="text-sm text-green-700">Avg. Income</p>
+                  <p className="text-xl font-bold">
+                    {selectedAreaDetails.metrics
+                      ? formatMetricValue(
+                          "income",
+                          selectedAreaDetails.metrics.income
+                        )
+                      : "N/A"}
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <span className="text-xs text-green-600">+5.1%</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      vs last year
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 p-3 rounded-lg">
+                  <p className="text-sm text-amber-700">Population</p>
+                  <p className="text-xl font-bold">
+                    {selectedAreaDetails.metrics
+                      ? formatMetricValue(
+                          "population",
+                          selectedAreaDetails.metrics.population
+                        )
+                      : "N/A"}
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <span className="text-xs text-green-600">+1.2%</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      growth rate
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 p-3 rounded-lg">
+                  <p className="text-sm text-purple-700">Development Index</p>
+                  <p className="text-xl font-bold">72.8/100</p>
+                  <div className="flex items-center mt-1">
+                    <span className="text-xs text-green-600">+3.4</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      since 2023
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Demographic Breakdown */}
+            <div className="bg-white rounded-lg border shadow-sm p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-600" />
+                Demographic Breakdown
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">
+                    Gender Distribution
+                  </h4>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>Male</span>
+                      <span className="font-medium">52.3%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{ width: "52.3%" }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Female</span>
+                      <span className="font-medium">47.1%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-pink-500 h-2 rounded-full"
+                        style={{ width: "47.1%" }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Other</span>
+                      <span className="font-medium">0.6%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-purple-500 h-2 rounded-full"
+                        style={{ width: "0.6%" }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">
+                    Age Distribution
+                  </h4>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>0-18</span>
+                      <span className="font-medium">32.1%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full"
+                        style={{ width: "32.1%" }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    <div className="flex justify-between text-sm">
+                      <span>19-35</span>
+                      <span className="font-medium">28.7%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{ width: "28.7%" }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    <div className="flex justify-between text-sm">
+                      <span>36-50</span>
+                      <span className="font-medium">22.4%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-amber-500 h-2 rounded-full"
+                        style={{ width: "22.4%" }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    <div className="flex justify-between text-sm">
+                      <span>51+</span>
+                      <span className="font-medium">16.8%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-red-500 h-2 rounded-full"
+                        style={{ width: "16.8%" }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Caste and SEC Distribution */}
+            <div className="bg-white rounded-lg border shadow-sm p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-600" />
+                Social Distribution
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">
+                    Caste Distribution
+                  </h4>
+                  <div className="space-y-2">
+                    {Object.entries({
+                      obc: "OBC (42%)",
+                      sc: "SC (21%)",
+                      st: "ST (12%)",
+                      oc: "OC (25%)",
+                    }).map(([caste, label]) => (
+                      <div key={caste} className="flex items-center">
+                        <div
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{
+                            backgroundColor: getColor("literacy", caste),
+                          }}
+                        ></div>
+                        <span className="text-sm">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">
+                    SEC Distribution
+                  </h4>
+                  <div className="space-y-2">
+                    {Object.entries({
+                      bpl: "BPL (18%)",
+                      low: "Low (25%)",
+                      middle: "Middle (32%)",
+                      high: "High (18%)",
+                      affluent: "Affluent (7%)",
+                    }).map(([sec, label]) => (
+                      <div key={sec} className="flex items-center">
+                        <div
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{ backgroundColor: getColor("income", sec) }}
+                        ></div>
+                        <span className="text-sm">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Comparison */}
+            <div className="bg-white rounded-lg border shadow-sm p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-indigo-600" />
+                Performance Comparison
+              </h3>
+
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Literacy Rate</span>
+                    <span className="font-medium">
+                      {selectedAreaDetails.metrics?.literacy.toFixed(1) || 0}%
+                      (State Avg: 72.8%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-indigo-600 h-2.5 rounded-full"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          ((selectedAreaDetails.metrics?.literacy || 0) * 100) /
+                            100
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Avg. Income</span>
+                    <span className="font-medium">
+                      ₹
+                      {selectedAreaDetails.metrics?.income.toLocaleString() ||
+                        0}{" "}
+                      (State Avg: ₹48,500)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-green-600 h-2.5 rounded-full"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          ((selectedAreaDetails.metrics?.income || 0) * 100) /
+                            100000
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Health Index</span>
+                    <span className="font-medium">
+                      68.2/100 (State Avg: 63.7)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-teal-600 h-2.5 rounded-full"
+                      style={{ width: "68.2%" }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Insights and Recommendations */}
+            <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-amber-600" />
+                Insights & Recommendations
+              </h3>
+
+              <ul className="space-y-2 text-sm">
+                <li className="flex">
+                  <span className="text-amber-600 mr-2">•</span>
+                  <span>
+                    Literacy rate is <strong>8.4% below</strong> state average -
+                    focus on education programs
+                  </span>
+                </li>
+                <li className="flex">
+                  <span className="text-amber-600 mr-2">•</span>
+                  <span>
+                    <strong>SC/ST communities</strong> show 15% lower literacy
+                    rates - targeted interventions needed
+                  </span>
+                </li>
+                <li className="flex">
+                  <span className="text-amber-600 mr-2">•</span>
+                  <span>
+                    Income growth is <strong>2.1% above</strong> state average -
+                    continue economic development programs
+                  </span>
+                </li>
+                <li className="flex">
+                  <span className="text-amber-600 mr-2">•</span>
+                  <span>
+                    <strong>Youth population (19-35)</strong> is 28.7% - expand
+                    vocational training centers
+                  </span>
+                </li>
+              </ul>
+
+              <div className="mt-4">
+                <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium">
+                  Download Full Report
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
