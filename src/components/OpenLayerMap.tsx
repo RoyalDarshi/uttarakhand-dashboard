@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Map, View } from "ol";
-import { Vector as VectorSource } from "ol/source"; // Removed OSM import
-import { Vector as VectorLayer, Tile as TileLayer } from "ol/layer";
+import { Vector as VectorSource } from "ol/source";
+import { Vector as VectorLayer } from "ol/layer";
 import { GeoJSON } from "ol/format";
-import { Style, Fill, Stroke, Text } from "ol/style";
+import { Style, Fill, Stroke } from "ol/style";
 import { fromLonLat } from "ol/proj";
-import { Overlay } from "ol";
+import { Overlay } from "ol"; // Import Overlay for tooltip
 import { Zoom } from "ol/control";
-import { Feature } from "ol";
-import { Point } from "ol/geom";
 import {
   defaults as defaultInteractions,
   MouseWheelZoom,
@@ -25,6 +23,7 @@ interface OpenLayersMapProps {
   formatMetricValue: (metric: string, value: number) => string;
   getFullMetricName: () => string;
   officerNames: Record<string, string>;
+  onAreaClick: (details: any | null) => void; // New prop for click handler
 }
 
 const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
@@ -36,12 +35,13 @@ const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
   formatMetricValue,
   getFullMetricName,
   officerNames,
+  onAreaClick,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<Map | null>(null);
   const [vectorSource, setVectorSource] = useState<VectorSource | null>(null);
-  const [vectorLayer, setVectorLayer] = useState<VectorLayer | null>(null); // Store vectorLayer in state
-  const [tooltip, setTooltip] = useState<Overlay | null>(null);
+  const [vectorLayer, setVectorLayer] = useState<VectorLayer | null>(null);
+  const [tooltip, setTooltip] = useState<Overlay | null>(null); // State for tooltip overlay
 
   // Initialize map and layers
   useEffect(() => {
@@ -50,71 +50,67 @@ const OpenLayersMap: React.FC<OpenLayersMapProps> = ({
     const vectorSrc = new VectorSource();
     setVectorSource(vectorSrc);
 
-    // Create the vector layer initially
     const initialVectorLayer = new VectorLayer({
       source: vectorSrc,
-      // Style will be set dynamically in a separate useEffect
     });
     setVectorLayer(initialVectorLayer);
 
+    const newMap = new Map({
+      target: mapRef.current,
+      layers: [initialVectorLayer],
+      view: new View({
+        center: fromLonLat([80.52, 27.197049]),
+        zoom: 7,
+        minZoom: 5,
+        maxZoom: 18,
+      }),
+      controls: [
+        new Zoom({
+          className: "ol-zoom custom-zoom",
+        }),
+      ],
+      interactions: defaultInteractions({
+        mouseWheelZoom: false,
+      }).extend([
+        new MouseWheelZoom({
+          duration: 400,
+          timeout: 80,
+          useAnchor: true,
+          constrainResolution: false,
+        }),
+      ]),
+    });
 
-const newMap = new Map({
-  target: mapRef.current,
-  layers: [initialVectorLayer],
-  view: new View({
-    center: fromLonLat([80.52, 27.197049]),
-    zoom: 7,
-    minZoom: 5,
-    maxZoom: 18,
-  }),
-  controls: [
-    new Zoom({
-      className: "ol-zoom custom-zoom", // Custom class for styling
-    }),
-  ],
-  interactions: defaultInteractions({
-    mouseWheelZoom: false,
-  }).extend([
-    new MouseWheelZoom({
-        duration: 400,             // longer duration = smoother
-        timeout: 80,               // shorter delay between scroll events
-        useAnchor: true,           // zoom toward mouse pointer
-        constrainResolution: false // allows finer zoom increments
-    }),
-  ]),
-});
-
-
-    // Create tooltip overlay
+    // Create tooltip overlay element
     const tooltipElement = document.createElement("div");
     tooltipElement.className = "ol-tooltip";
     tooltipElement.style.cssText = `
       position: absolute;
-      background-color: rgba(31, 41, 55, 0.95); /* Slightly less transparent background */
-      color: #F9FAFB; /* Light text color */
-      padding: 10px 15px; /* Increased padding for more breathing room */
-      border-radius: 8px; /* More rounded corners */
-      font-size: 13px; /* Slightly larger font */
-      font-family: 'Inter', sans-serif; /* Specify a modern font */
+      background-color: rgba(31, 41, 55, 0.95);
+      color: #F9FAFB;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
       pointer-events: none;
       z-index: 1000;
-      max-width: 350px; /* Increased max-width for the tooltip */
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* More pronounced shadow */
-      line-height: 1.6; /* Improved readability */
-      border: 1px solid rgba(255, 255, 255, 0.15); /* Subtle light border */
-      white-space: nowrap; /* Prevent text from wrapping */
+      max-width: 350px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+      line-height: 1.6;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      white-space: nowrap;
     `;
 
+    // Create tooltip overlay
     const tooltipOverlay = new Overlay({
       element: tooltipElement,
       offset: [10, 10],
       positioning: "bottom-left",
     });
-
     newMap.addOverlay(tooltipOverlay);
     setTooltip(tooltipOverlay);
 
-    // Add hover functionality
+    // Add hover functionality (tooltip)
     newMap.on("pointermove", (evt) => {
       const feature = newMap.forEachFeatureAtPixel(
         evt.pixel,
@@ -125,7 +121,6 @@ const newMap = new Map({
         const properties = feature.getProperties();
         const id = properties["@id"];
         const name = properties.name || "Unknown Area";
-        // Access current metricData, demographicKey, selectedMetric for tooltip
         const value = metricData?.[id]?.[demographicKey]?.[selectedMetric] || 0;
         const formattedValue = formatMetricValue(selectedMetric, value);
         const fullMetricName = getFullMetricName();
@@ -143,12 +138,43 @@ const newMap = new Map({
       }
     });
 
+    // Add click functionality for area details popup
+    newMap.on("click", (evt) => {
+      const feature = newMap.forEachFeatureAtPixel(
+        evt.pixel,
+        (feature) => feature
+      );
+
+      if (feature && feature.getGeometry()?.getType() !== "Point") {
+        const properties = feature.getProperties();
+        const id = properties["@id"];
+        const name = properties.name || "Unknown Area";
+
+        // Get all metric values for the selected demographic key
+        const areaAllMetrics = metricData?.[id]?.[demographicKey];
+
+        const details = {
+          id,
+          name,
+          officer: officerNames[id] || "N/A",
+          metrics: areaAllMetrics,
+        };
+        onAreaClick(details);
+        // Hide tooltip when popup is active
+        if (tooltipElement) {
+          tooltipElement.style.display = "none";
+        }
+      } else {
+        onAreaClick(null); // Close the popup if no feature is clicked
+      }
+    });
+
     setMap(newMap);
 
     return () => {
       newMap.setTarget(undefined);
     };
-  }, []); // Empty dependency array means this runs once on mount
+  }, [metricData, demographicKey, selectedMetric]); // Added dependencies for all functions used inside useEffect
 
   // Update map data (features) when geoJsonData or metricData changes
   useEffect(() => {
@@ -189,7 +215,7 @@ const newMap = new Map({
         }),
       });
     });
-  }, [vectorLayer, metricData, selectedMetric, demographicKey, getColor]); // Dependencies for style update
+  }, [vectorLayer, metricData, selectedMetric, demographicKey, getColor]);
 
   return (
     <div

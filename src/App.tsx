@@ -8,10 +8,16 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
-import { MapPin, Users, IndianRupee, BookOpen, TrendingUp, Filter } from "lucide-react";
+import {
+  MapPin,
+  Users,
+  IndianRupee,
+  BookOpen,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import OpenLayersMap from "./components/OpenLayerMap";
 
 interface MetricValues {
@@ -71,21 +77,44 @@ const ageDisplayNames: Record<AgeKey, string> = {
 
 const App: React.FC = () => {
   const [polygonData, setPolygonData] = useState<GeoJSONData | null>(null);
-  const [metricData, setMetricData] = useState<Record<string, AreaMetricData> | null>(null);
-  const [selectedMetric, setSelectedMetric] = useState<"literacy" | "income" | "population">("literacy");
+  const [metricData, setMetricData] = useState<Record<
+    string,
+    AreaMetricData
+  > | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<
+    "literacy" | "income" | "population"
+  >("literacy");
   const [selectedGender, setSelectedGender] = useState<GenderKey>("all");
   const [selectedAge, setSelectedAge] = useState<AgeKey>("all");
   const [selectedCaste, setSelectedCaste] = useState<CasteKey>("all");
   const [selectedSEC, setSelectedSEC] = useState<SECKey>("all");
   const [error, setError] = useState<string | null>(null);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [selectedAreaDetails, setSelectedAreaDetails] = useState<any | null>(
+    null
+  ); // New state for popup
 
   const officerNames = useMemo(() => {
     const names = [
-      "Amit Kumar", "Priya Sharma", "Rajesh Singh", "Anjali Devi", "Sanjay Yadav",
-      "Neha Gupta", "Vikram Rathore", "Pooja Kumari", "Rahul Verma", "Deepa Singh",
-      "Alok Mishra", "Swati Patel", "Manoj Kumar", "Shweta Jha", "Gaurav Singh",
-      "Kavita Devi", "Vivek Sharma", "Arti Yadav", "Nitin Gupta", "Ritu Singh",
+      "Amit Kumar",
+      "Priya Sharma",
+      "Rajesh Singh",
+      "Anjali Devi",
+      "Sanjay Yadav",
+      "Neha Gupta",
+      "Vikram Rathore",
+      "Pooja Kumari",
+      "Rahul Verma",
+      "Deepa Singh",
+      "Alok Mishra",
+      "Swati Patel",
+      "Manoj Kumar",
+      "Shweta Jha",
+      "Gaurav Singh",
+      "Kavita Devi",
+      "Vivek Sharma",
+      "Arti Yadav",
+      "Nitin Gupta",
+      "Ritu Singh",
     ];
     const officerMap: Record<string, string> = {};
     if (polygonData) {
@@ -184,7 +213,6 @@ const App: React.FC = () => {
     return dataMap;
   };
 
-
   useEffect(() => {
     fetch("/UPBoundaries.geojson")
       .then((res) => {
@@ -211,12 +239,25 @@ const App: React.FC = () => {
 
         const areas = filtered.features.map((f) => f.properties["@id"]);
         const dataMap: Record<string, AreaMetricData> = {};
-        
+
         // Define all possible keys for demographic data
         const genders: GenderKey[] = ["all", "male", "female", "other"];
-        const ages: AgeKey[] = ["all", "age0_18", "age19_35", "age36_50", "age51_plus"];
+        const ages: AgeKey[] = [
+          "all",
+          "age0_18",
+          "age19_35",
+          "age36_50",
+          "age51_plus",
+        ];
         const castes: CasteKey[] = ["all", "obc", "sc", "st", "oc"];
-        const secs: SECKey[] = ["all", "bpl", "low", "middle", "high", "affluent"];
+        const secs: SECKey[] = [
+          "all",
+          "bpl",
+          "low",
+          "middle",
+          "high",
+          "affluent",
+        ];
 
         areas.forEach((areaId) => {
           const areaData: AreaMetricData = {};
@@ -254,10 +295,10 @@ const App: React.FC = () => {
 
   const kpis = useMemo(() => {
     if (!metricData) return null;
-    const values = Object.values(metricData).map(
-      (area) => area[demographicKey]?.[selectedMetric]
-    ).filter(value => value !== undefined);
-    
+    const values = Object.values(metricData)
+      .map((area) => area[demographicKey]?.[selectedMetric])
+      .filter((value) => value !== undefined);
+
     if (values.length === 0) return { average: 0, min: 0, max: 0 };
 
     let average = values.reduce((sum, val) => sum + val, 0) / values.length;
@@ -296,7 +337,6 @@ const App: React.FC = () => {
     }
     return "#6b7280";
   };
-
 
   const formatMetricValue = (metric: string, value: number): string => {
     if (metric === "literacy") return `${value.toFixed(1)}%`;
@@ -456,7 +496,6 @@ const App: React.FC = () => {
     return null;
   };
 
-
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center">
@@ -529,7 +568,9 @@ const App: React.FC = () => {
       <main className=" mx-auto px-2 py-2">
         {/* Filters */}
         <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-2 mb-2">
-          <div className={`${filtersExpanded ? "block" : "hidden"} md:block`}>
+          <div className="block">
+            {" "}
+            {/* Removed filtersExpanded logic for simplicity, always show filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">
@@ -654,7 +695,9 @@ const App: React.FC = () => {
         {/* Main Content */}
         <div className="grid grid-cols-5 gap-2">
           {/* Map */}
-          <div className="col-span-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20">
+          <div
+            className={`col-span-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 transition-all duration-300`}
+          >
             <OpenLayersMap
               geoJsonData={polygonData}
               metricData={metricData}
@@ -664,11 +707,16 @@ const App: React.FC = () => {
               formatMetricValue={formatMetricValue}
               getFullMetricName={getFullMetricName}
               officerNames={officerNames}
+              onAreaClick={setSelectedAreaDetails} // Pass the setter function
             />
           </div>
 
           {/* Charts */}
-          <div className="col-span-2 space-y-2">
+          <div
+            className={`col-span-${
+              selectedAreaDetails ? "1" : "2"
+            } space-y-2 ${selectedAreaDetails ? "block" : "hidden"} lg:block`}
+          >
             {/* Pie Chart */}
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-4">
               <h3 className="text-lg font-semibold text-gray-900 pl-4">
@@ -701,7 +749,7 @@ const App: React.FC = () => {
               </h2>
               <BarChart
                 layout="horizontal"
-                width={700}
+                width={selectedAreaDetails ? 350 : 700} // Adjust width for smaller screens
                 height={window.innerWidth < 640 ? 250 : 290}
                 data={barData}
                 margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
@@ -734,6 +782,69 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Area Details Popup */}
+      <div
+        className={`fixed right-0 top-0 h-full w-80 bg-white/95 backdrop-blur-lg shadow-2xl z-50 transform transition-transform duration-300
+        ${selectedAreaDetails ? "translate-x-0" : "translate-x-full"}
+        flex flex-col p-6 border-l border-white/20`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {selectedAreaDetails?.name || "Area Details"}
+          </h2>
+          <button
+            onClick={() => setSelectedAreaDetails(null)}
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {selectedAreaDetails && (
+          <div className="space-y-4 text-gray-700 overflow-y-auto">
+            <p>
+              <strong className="font-semibold">Officer In Charge:</strong>{" "}
+              {selectedAreaDetails.officer}
+            </p>
+            <h3 className="text-lg font-semibold text-gray-800 mt-4 border-b pb-2 border-gray-200">
+              Demographic Metrics
+            </h3>
+            {selectedAreaDetails.metrics ? (
+              <div className="space-y-2">
+                <p>
+                  <strong className="font-semibold">Literacy Rate:</strong>{" "}
+                  {formatMetricValue(
+                    "literacy",
+                    selectedAreaDetails.metrics.literacy
+                  )}
+                </p>
+                <p>
+                  <strong className="font-semibold">Average Income:</strong>{" "}
+                  {formatMetricValue(
+                    "income",
+                    selectedAreaDetails.metrics.income
+                  )}
+                </p>
+                <p>
+                  <strong className="font-semibold">Population:</strong>{" "}
+                  {formatMetricValue(
+                    "population",
+                    selectedAreaDetails.metrics.population
+                  )}
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500">
+                No detailed metric data available for the current demographic
+                selection.
+              </p>
+            )}
+            {/* You can add more details here if available in selectedAreaDetails */}
+          </div>
+        )}
+      </div>
 
       {/* Footer */}
       <footer className="bg-white/80 backdrop-blur-md border-t border-white/20 mt-2">
