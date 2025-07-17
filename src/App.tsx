@@ -92,6 +92,9 @@ const App: React.FC = () => {
   const [selectedAreaDetails, setSelectedAreaDetails] = useState<any | null>(
     null
   ); // New state for popup
+  const [selectedBarChartCategory, setSelectedBarChartCategory] = useState<
+    "caste" | "gender" | "age" | "sec"
+  >("caste"); // New state for bar chart category
 
   const officerNames = useMemo(() => {
     const names = [
@@ -310,29 +313,52 @@ const App: React.FC = () => {
   }, [metricData, selectedMetric, demographicKey]);
 
   const getColor = (metric: string, value: number | string): string => {
+    // This function now needs to be more generic or handle specific keys
+    // For bar chart, we'll pass the actual category key (e.g., 'obc', 'male', 'age0_18', 'bpl')
+    // and map it to a consistent color scheme.
+    // For simplicity, let's define some base colors for categories.
+    const categoryColors: Record<string, string> = {
+      // Caste
+      obc: "#6366f1", // Indigo
+      sc: "#8b5cf6", // Violet
+      st: "#a78bfa", // Purple
+      oc: "#c4b5fd", // Light Purple
+      // Gender
+      male: "#3b82f6", // Blue
+      female: "#ec4899", // Pink
+      other: "#a855f7", // Dark Purple
+      // Age
+      age0_18: "#10b981", // Emerald
+      age19_35: "#22c55e", // Green
+      age36_50: "#eab308", // Yellow
+      age51_plus: "#ef4444", // Red
+      // SEC
+      bpl: "#f97316", // Orange
+      low: "#fbbf24", // Amber
+      middle: "#84cc16", // Lime
+      high: "#3b82f6", // Blue
+      affluent: "#14b8a6", // Teal
+    };
+
+    if (typeof value === "string" && categoryColors[value]) {
+      return categoryColors[value];
+    }
+
+    // Existing logic for map colors based on metric value
     if (metric === "literacy") {
-      if (value === "oc" || (typeof value === "number" && value >= 90))
-        return "#6366f1";
-      if (value === "obc" || (typeof value === "number" && value >= 80))
-        return "#8b5cf6";
-      if (value === "sc" || (typeof value === "number" && value >= 70))
-        return "#a78bfa";
+      if (typeof value === "number" && value >= 90) return "#6366f1";
+      if (typeof value === "number" && value >= 80) return "#8b5cf6";
+      if (typeof value === "number" && value >= 70) return "#a78bfa";
       return "#c4b5fd";
     } else if (metric === "income") {
-      if (value === "oc" || (typeof value === "number" && value >= 80000))
-        return "#059669";
-      if (value === "obc" || (typeof value === "number" && value >= 50000))
-        return "#10b981";
-      if (value === "sc" || (typeof value === "number" && value >= 30000))
-        return "#34d399";
+      if (typeof value === "number" && value >= 80000) return "#059669";
+      if (typeof value === "number" && value >= 50000) return "#10b981";
+      if (typeof value === "number" && value >= 30000) return "#34d399";
       return "#6ee7b7";
     } else if (metric === "population") {
-      if (value === "oc" || (typeof value === "number" && value >= 500000))
-        return "#dc2626";
-      if (value === "obc" || (typeof value === "number" && value >= 200000))
-        return "#ea580c";
-      if (value === "sc" || (typeof value === "number" && value >= 100000))
-        return "#f97316";
+      if (typeof value === "number" && value >= 500000) return "#dc2626";
+      if (typeof value === "number" && value >= 200000) return "#ea580c";
+      if (typeof value === "number" && value >= 100000) return "#f97316";
       return "#fb923c";
     }
     return "#6b7280";
@@ -417,56 +443,98 @@ const App: React.FC = () => {
     }));
   }, [metricData, polygonData, selectedMetric, demographicKey]);
 
+  // Memoized value to get the overall metric data for sorting top 10 districts
+  const overallMetricDataForSorting = useMemo(() => {
+    if (!metricData || !polygonData) return {};
+    const overallKey = `all_all_all_all`; // Key for overall data
+    const data: Record<string, number> = {};
+    polygonData.features.forEach((feature) => {
+      const id = feature.properties["@id"];
+      data[id] = metricData[id]?.[overallKey]?.[selectedMetric] ?? 0;
+    });
+    return data;
+  }, [metricData, polygonData, selectedMetric]);
+
   const barData = useMemo(() => {
     if (!metricData || !polygonData) return [];
 
-    const casteKeys: CasteKey[] = ["obc", "sc", "st", "oc"];
+    // First, determine the top 10 districts based on the overall selected metric
+    const sortedAreas = polygonData.features
+      .map((feature) => ({
+        id: feature.properties["@id"],
+        name: feature.properties.name || "Unknown Area",
+        overallValue:
+          overallMetricDataForSorting[feature.properties["@id"]] || 0,
+      }))
+      .sort((a, b) => b.overallValue - a.overallValue)
+      .slice(0, 10); // Get top 10 based on overall metric
 
-    // Build and collect caste values per area
-    const rawData = polygonData.features.map((feature) => {
-      const id = feature.properties["@id"];
-      const name = feature.properties.name || "Unknown Area";
+    let keys: string[] = [];
+    let getDemographicKey: (areaId: string, key: string) => string;
+    let displayNamesMap: Record<string, string> = {};
 
-      const casteValues: Record<CasteKey, number> = {
-        obc: 0,
-        sc: 0,
-        st: 0,
-        oc: 0,
-      };
+    switch (selectedBarChartCategory) {
+      case "caste":
+        keys = ["obc", "sc", "st", "oc"];
+        getDemographicKey = (areaId, key) =>
+          `${selectedGender}_${selectedAge}_${key}_${selectedSEC}`;
+        displayNamesMap = casteDisplayNames;
+        break;
+      case "gender":
+        keys = ["male", "female", "other"];
+        getDemographicKey = (areaId, key) =>
+          `${key}_${selectedAge}_${selectedCaste}_${selectedSEC}`;
+        displayNamesMap = genderDisplayNames;
+        break;
+      case "age":
+        keys = ["age0_18", "age19_35", "age36_50", "age51_plus"];
+        getDemographicKey = (areaId, key) =>
+          `${selectedGender}_${key}_${selectedCaste}_${selectedSEC}`;
+        displayNamesMap = ageDisplayNames;
+        break;
+      case "sec":
+        keys = ["bpl", "low", "middle", "high", "affluent"];
+        getDemographicKey = (areaId, key) =>
+          `${selectedGender}_${selectedAge}_${selectedCaste}_${key}`;
+        displayNamesMap = secDisplayNames;
+        break;
+      default:
+        return { data: [], keys: [], displayNamesMap: {} };
+    }
 
-      casteKeys.forEach((caste) => {
-        const key = `${selectedGender}_${selectedAge}_${caste}_${selectedSEC}`;
-        const metricValue = metricData[id]?.[key]?.[selectedMetric];
-        casteValues[caste] = metricValue ?? 0;
+    // Now, for these top 10 districts, get the demographic breakdown
+    const rawData = sortedAreas.map((area) => {
+      const categoryValues: Record<string, number> = {};
+      keys.forEach((key) => {
+        const fullKey = getDemographicKey(area.id, key);
+        const metricValue = metricData[area.id]?.[fullKey]?.[selectedMetric];
+        categoryValues[key] = metricValue ?? 0;
       });
 
-      const total = casteKeys.reduce(
-        (sum, caste) => sum + casteValues[caste],
-        0
-      );
-
       return {
-        name,
-        total,
-        ...casteValues,
+        name: area.name,
+        ...categoryValues,
       };
     });
 
-    // Sort by total and pick top 10
-    const top10 = rawData
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10)
-      .map(({ total, ...rest }) => rest); // remove 'total' from the final result
-
-    return top10;
+    return { data: rawData, keys, displayNamesMap };
   }, [
     metricData,
     polygonData,
     selectedMetric,
     selectedGender,
     selectedAge,
+    selectedCaste,
     selectedSEC,
+    selectedBarChartCategory,
+    overallMetricDataForSorting, // Add new dependency for consistent sorting
   ]);
+
+  const {
+    data: barChartData,
+    keys: barChartKeys,
+    displayNamesMap: barChartDisplayNamesMap,
+  } = barData;
 
   const CustomBarTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -474,16 +542,19 @@ const App: React.FC = () => {
         <div className="bg-white border border-gray-300 rounded p-2 shadow text-xs">
           <p className="font-semibold">{label}</p>
           {payload.map((entry: any, index: number) => {
-            const caste = entry.dataKey;
+            const categoryKey = entry.dataKey;
+            const displayName =
+              barChartDisplayNamesMap[categoryKey] || categoryKey; // Use the correct display name map
             return (
               <div key={`tooltip-${index}`} className="flex items-center gap-2">
                 <span
                   className="inline-block w-3 h-3 rounded-full"
                   style={{
-                    backgroundColor: getColor(selectedMetric, caste) || "#ccc",
+                    backgroundColor:
+                      getColor(selectedMetric, categoryKey) || "#ccc",
                   }}
                 />
-                <span>{casteDisplayNames[caste]}</span>:
+                <span>{displayName}</span>:
                 <span className="font-medium">
                   {formatMetricValue(selectedMetric, entry.value)}
                 </span>
@@ -744,14 +815,30 @@ const App: React.FC = () => {
 
             {/* Bar Chart */}
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-4">
-              <h2 className="text-lg font-semibold text-gray-900 pl-4 p-2">
-                Top 10 Districts
-              </h2>
+              <div className="flex justify-between items-center mb-4 pl-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Top 10 Districts by {getMetricDisplayName(selectedMetric)}
+                </h2>
+                <select
+                  value={selectedBarChartCategory}
+                  onChange={(e) =>
+                    setSelectedBarChartCategory(
+                      e.target.value as "caste" | "gender" | "age" | "sec"
+                    )
+                  }
+                  className="p-1 bg-gray-50 border border-gray-300 rounded-md text-xs sm:text-sm"
+                >
+                  <option value="caste">Caste</option>
+                  <option value="gender">Gender</option>
+                  <option value="age">Age Group</option>
+                  <option value="sec">SEC</option>
+                </select>
+              </div>
               <BarChart
                 layout="horizontal"
                 width={selectedAreaDetails ? 350 : 700} // Adjust width for smaller screens
                 height={window.innerWidth < 640 ? 250 : 290}
-                data={barData}
+                data={barChartData}
                 margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
               >
                 <YAxis
@@ -767,12 +854,12 @@ const App: React.FC = () => {
                   tick={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
                 />
                 <Tooltip content={<CustomBarTooltip />} />
-                {["obc", "sc", "st", "oc"].map((caste) => (
-                  <Bar key={caste} dataKey={caste} stackId="a">
-                    {barData.map((entry, index) => (
+                {barChartKeys.map((key) => (
+                  <Bar key={key} dataKey={key} stackId="a">
+                    {barChartData.map((entry, index) => (
                       <Cell
-                        key={`cell-${caste}-${index}`}
-                        fill={getColor(selectedMetric, caste)}
+                        key={`cell-${key}-${index}`}
+                        fill={getColor(selectedMetric, key)}
                       />
                     ))}
                   </Bar>
@@ -794,9 +881,9 @@ const App: React.FC = () => {
             <h2 className="text-2xl font-bold text-gray-800">
               {selectedAreaDetails?.name || "Area Details"}
             </h2>
-            <p className="text-sm text-gray-500">
+            {/* <p className="text-sm text-gray-500">
               {selectedAreaDetails?.id || "Area ID: N/A"}
-            </p>
+            </p> */}
           </div>
           <button
             onClick={() => setSelectedAreaDetails(null)}
@@ -902,7 +989,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Demographic Breakdown */}
-            {/* <div className="bg-white rounded-lg border shadow-sm p-4">
+            <div className="bg-white rounded-lg border shadow-sm p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <Users className="w-5 h-5 text-indigo-600" />
                 Demographic Breakdown
@@ -1005,7 +1092,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div> */}
+            </div>
 
             {/* Caste and SEC Distribution */}
             <div className="bg-white rounded-lg border shadow-sm p-4">
@@ -1136,7 +1223,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Insights and Recommendations */}
-            {/* <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
+            <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-amber-600" />
                 Insights & Recommendations
@@ -1178,7 +1265,7 @@ const App: React.FC = () => {
                   Download Full Report
                 </button>
               </div>
-            </div> */}
+            </div>
           </div>
         )}
       </div>
