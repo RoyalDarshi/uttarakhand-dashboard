@@ -784,9 +784,9 @@ const App: React.FC = () => {
 
           {/* Charts */}
           <div
-            className={`col-span-${selectedAreaDetails ? "1" : "2"} space-y-2 ${
-              selectedAreaDetails ? "block" : "hidden"
-            } lg:block`}
+            className={`${
+              selectedAreaDetails ? "col-span-1" : "col-span-2"
+            } space-y-2 ${selectedAreaDetails ? "block" : "hidden"} lg:block`}
           >
             {/* Pie Chart */}
             <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-4">
